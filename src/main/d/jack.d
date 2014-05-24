@@ -52,7 +52,8 @@ alias jack_c.JackOpenOptions JackOpenOptions;
 alias jack_c.JackLoadOptions JackLoadOptions;
 
 alias jack_latency_range_t JackLatencyRange;
-alias jack_port_type_id_t JackPortID;
+alias jack_port_id_t JackPortID;
+alias jack_port_type_id_t JackPortTypeID;
 
 alias jack_default_audio_sample_t DefaultAudioSample;
 
@@ -105,20 +106,20 @@ alias jack_nframes_t JackNFrames;
 alias jack_time_t JackTime;
 
 alias int function(JackNFrames nframes, void* data) JackProcessCallback;
-alias ref Object function(Object data) JackThreadCallback;
-alias void function(Object data) JackThreadInitCallback;
-alias int function(Object data) JackGraphOrderCallback;
-alias int function(Object data) JackXRunCallback;
-alias int function(JackNFrames nframes, Object data) JackBufferSizeCallback;
-alias int function(JackNFrames nframes, Object data) JackSampleRateCallback;
-alias void function(jack_port_id_t port, int register, Object data) JackPortRegistrationCallback;
-alias void function(string name, int register, Object data) JackClientRegistrationCallback;
-alias void function(JackPort a, JackPort b, int connect, Object data) JackPortConnectCallback;
-alias int function(JackPort port, string old_name, string new_name, Object data) JackPortRenameCallback;
-alias void function(int starting, Object data) JackFreewheelCallback;
+alias void* function(void* data) JackThreadCallback;
+alias void function(void* data) JackThreadInitCallback;
+alias int function(void* data) JackGraphOrderCallback;
+alias int function(void* data) JackXRunCallback;
+alias int function(JackNFrames nframes, void* data) JackBufferSizeCallback;
+alias int function(JackNFrames nframes, void* data) JackSampleRateCallback;
+alias void function(JackPortID port, int register, void* data) JackPortRegistrationCallback;
+alias void function(string name, int register, void* data) JackClientRegistrationCallback;
+alias void function(JackPort a, JackPort b, int connect, void* data) JackPortConnectCallback;
+alias int function(JackPort port, string old_name, string new_name, void* data) JackPortRenameCallback;
+alias void function(int starting, void* data) JackFreewheelCallback;
 alias void function(void* data) JackShutdownCallback;
-alias void function(Status code, string reason, Object data) JackInfoShutdownCallback;
-alias void function(LatencyCallbackMode mode, Object data) JackLatencyCallback;
+alias void function(Status code, string reason, void* data) JackInfoShutdownCallback;
+alias void function(LatencyCallbackMode mode, void* data) JackLatencyCallback;
 
 interface JackClient
 {
@@ -146,16 +147,16 @@ interface JackClient
     // Callbacks
     void setProcessCallback(JackProcessCallback callback, void* data);
     void setShutdownCallback(JackShutdownCallback callback, void* data);
-    void setFreewheelCallback(JackFreewheelCallback callback, Object data);
-    void setBufferSizeCallback(JackBufferSizeCallback callback, Object data);
-    void setSampleRateCallback(JackSampleRateCallback callback, Object data);
-    void setClientRegistrationCallback(JackClientRegistrationCallback callback, Object data);
-    void setPortRegistrationCallback(JackPortRegistrationCallback callback, Object data);
-    void setPortConnectCallback(JackPortConnectCallback callback, Object data);
-    void setPortRenameCallback(JackPortRenameCallback callback, Object data);
-    void setGraphOrderCallback(JackGraphOrderCallback callback, Object data);
-    void setXRunRenameCallback(JackXRunCallback callback, Object data);
-    void setLatencyRenameCallback(JackLatencyCallback callback, Object data);
+    void setFreewheelCallback(JackFreewheelCallback callback, void* data);
+    void setBufferSizeCallback(JackBufferSizeCallback callback, void* data);
+    void setSampleRateCallback(JackSampleRateCallback callback, void* data);
+    void setClientRegistrationCallback(JackClientRegistrationCallback callback, void* data);
+    void setPortRegistrationCallback(JackPortRegistrationCallback callback, void* data);
+    void setPortConnectCallback(JackPortConnectCallback callback, void* data);
+    void setPortRenameCallback(JackPortRenameCallback callback, void* data);
+    void setGraphOrderCallback(JackGraphOrderCallback callback, void* data);
+    void setXRunCallback(JackXRunCallback callback, void* data);
+    void setLatencyCallback(JackLatencyCallback callback, void* data);
 
     JackTime framesToTime(JackNFrames frames);
     JackNFrames timeToFrames(JackTime time);
@@ -345,23 +346,63 @@ class JackClientImplementation : JackClient {
   void recomputeTotalLatencies() { throw new Exception("Not yet implemented"); }
 
   void setProcessCallback(JackProcessCallback callback, void* data) {
-    jack_set_process_callback (client, callback, data);
+    if(jack_set_process_callback (client, callback, data)) {
+      throw new JackException("Cannot set process callback");
+    }
   }
-
   void setShutdownCallback(JackShutdownCallback callback, void* data) {
     jack_on_shutdown (client, callback, data);
   }
-
-  void setFreewheelCallback(JackFreewheelCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setBufferSizeCallback(JackBufferSizeCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setSampleRateCallback(JackSampleRateCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setClientRegistrationCallback(JackClientRegistrationCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setPortRegistrationCallback(JackPortRegistrationCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setPortConnectCallback(JackPortConnectCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setPortRenameCallback(JackPortRenameCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setGraphOrderCallback(JackGraphOrderCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setXRunRenameCallback(JackXRunCallback callback, Object data) { throw new Exception("Not yet implemented"); }
-  void setLatencyRenameCallback(JackLatencyCallback callback, Object data) { throw new Exception("Not yet implemented"); }
+  void setFreewheelCallback(JackFreewheelCallback callback, void* data) { 
+    if(jack_set_freewheel_callback (client, callback, data)) {
+      throw new JackException("Cannot set freewheel callback");
+    }
+  }
+  void setBufferSizeCallback(JackBufferSizeCallback callback, void* data) { 
+    if(jack_set_buffer_size_callback (client, callback, data)) {
+      throw new JackException("Cannot set buffer size callback");
+    }
+  }
+  void setSampleRateCallback(JackSampleRateCallback callback, void* data) { 
+    if(jack_set_sample_rate_callback (client, callback, data)) {
+      throw new JackException("Cannot set sample rate callback");
+    }
+  }
+  void setClientRegistrationCallback(JackClientRegistrationCallback callback, void* data) { 
+    if(jack_set_client_registration_callback (client, callback, data)) {
+      throw new JackException("Cannot set client registration callback");
+    }
+  }
+  void setPortRegistrationCallback(JackPortRegistrationCallback callback, void* data) { 
+    if(jack_set_port_registration_callback (client, callback, data)) {
+      throw new JackException("Cannot set port registration callback");
+    }
+  }
+  void setPortConnectCallback(JackPortConnectCallback callback, void* data) { 
+    if(jack_set_port_connect_callback (client, callback, data)) {
+      throw new JackException("Cannot set port connect callback");
+    }
+  }
+  void setPortRenameCallback(JackPortRenameCallback callback, void* data) { 
+    if(jack_set_port_rename_callback (client, callback, data)) {
+      throw new JackException("Cannot set port rename callback");
+    }
+  }
+  void setGraphOrderCallback(JackGraphOrderCallback callback, void* data) { 
+    if(jack_set_graph_order_callback (client, callback, data)) {
+      throw new JackException("Cannot set graph order callback");
+    }
+  }
+  void setXRunCallback(JackXRunCallback callback, void* data) { 
+    if(jack_set_xrun_callback (client, callback, data)) {
+      throw new JackException("Cannot set xrun callback");
+    }
+  }
+  void setLatencyCallback(JackLatencyCallback callback, void* data) { 
+    if(jack_set_latency_callback (client, callback, data)) {
+      throw new JackException("Cannot set latency callback");
+    }
+  }
 
   JackTime framesToTime(JackNFrames frames) { throw new Exception("Not yet implemented"); }
   JackNFrames timeToFrames(JackTime time) { throw new Exception("Not yet implemented"); }
