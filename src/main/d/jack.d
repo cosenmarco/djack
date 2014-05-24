@@ -1,3 +1,8 @@
+/*
+   Copyright (c) 2014 Marco Cosentino
+   Licence GPLv3
+*/
+
 module jack;
 
 import jack_c;

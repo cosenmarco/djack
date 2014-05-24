@@ -1,4 +1,8 @@
-import jack;
+/*
+   Copyright (c) 2014 Marco Cosentino
+   Licence GPLv3
+*/
+
 import std.conv;
 import std.stdio;
 import std.math;
