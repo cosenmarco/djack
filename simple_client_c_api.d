@@ -1,4 +1,4 @@
-import jack;
+import jack_c;
 import std.conv;
 import std.stdio;
 import std.math;
