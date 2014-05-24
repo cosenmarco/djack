@@ -4,9 +4,45 @@ import jack_c;
 import std.conv;
 import std.string;
 
-alias jack_c.JackOptions JackOptions;
-alias jack_c.JackStatus JackStatus;
-alias jack_c.JackPortFlags JackPortFlags;
+enum Options : jack_options_t {
+  NullOption =    jack_options_t.JackNullOption,
+  NoStartServer = jack_options_t.JackNoStartServer,
+  UseExactName =  jack_options_t.JackUseExactName,
+  ServerName =    jack_options_t.JackServerName,
+  LoadName =      jack_options_t.JackLoadName,
+  LoadInit =      jack_options_t.JackLoadInit,
+  SessionID =     jack_options_t.JackSessionID
+};
+
+enum Status : jack_status_t {
+  Failure =       jack_status_t.JackFailure,
+  InvalidOption = jack_status_t.JackInvalidOption,
+  NameNotUnique = jack_status_t.JackNameNotUnique,
+  ServerStarted = jack_status_t.JackServerStarted,
+  ServerFailed =  jack_status_t.JackServerFailed,
+  ServerError =   jack_status_t.JackServerError,
+  NoSuchClient =  jack_status_t.JackNoSuchClient,
+  LoadFailure =   jack_status_t.JackLoadFailure,
+  InitFailure =   jack_status_t.JackInitFailure,
+  ShmFailure =    jack_status_t.JackShmFailure,
+  VersionError =  jack_status_t.JackVersionError,
+  BackendError =  jack_status_t.JackBackendError,
+  ClientZombie =  jack_status_t.JackClientZombie
+};
+
+enum LatencyCallbackMode : jack_latency_callback_mode_t {
+  CaptureLatency =  jack_latency_callback_mode_t.JackCaptureLatency,
+  PlaybackLatency = jack_latency_callback_mode_t.JackPlaybackLatency
+}
+
+enum PortFlags : JackPortFlags {
+  IsInput =     JackPortFlags.JackPortIsInput,
+  IsOutput =    JackPortFlags.JackPortIsOutput,
+  IsPhysical =  JackPortFlags.JackPortIsPhysical,
+  CanMonitor =  JackPortFlags.JackPortCanMonitor,
+  IsTerminal =  JackPortFlags.JackPortIsTerminal
+};
+
 alias jack_c.JackOpenOptions JackOpenOptions;
 alias jack_c.JackLoadOptions JackLoadOptions;
 
@@ -76,8 +112,8 @@ alias void function(JackPort a, JackPort b, int connect, Object data) JackPortCo
 alias int function(JackPort port, string old_name, string new_name, Object data) JackPortRenameCallback;
 alias void function(int starting, Object data) JackFreewheelCallback;
 alias void function(void* data) JackShutdownCallback;
-alias void function(JackStatus code, string reason, Object data) JackInfoShutdownCallback;
-alias void function(JackLatencyCallbackMode mode, Object data) JackLatencyCallback;
+alias void function(Status code, string reason, Object data) JackInfoShutdownCallback;
+alias void function(LatencyCallbackMode mode, Object data) JackLatencyCallback;
 
 interface JackClient
 {
@@ -146,14 +182,16 @@ struct JackVersion
 interface JackThread {}
 
 
+// ######### Implementation ###########
+
 class JackException : Exception {
-  JackStatus status = JackStatus.JackFailure;
+  Status status = Status.Failure;
 
   this(string message) {
     super(message);
   }
 
-  this(string message, JackStatus status) {
+  this(string message, Status status) {
     super(message);
     this.status = status;
   }
@@ -343,13 +381,13 @@ class JackClientImplementation : JackClient {
 
 // ######### Global functions
 
-static JackClient clientOpen(string clientName, JackOptions options, out JackStatus status, string serverName) {
+static JackClient clientOpen(string clientName, Options options, out Status status, string serverName) {
   jack_client_t* client;
 
-  if( status & JackOptions.JackServerName) {
-    client = jack_client_open (toStringz(clientName), options, &status, toStringz(serverName));
+  if( status & Options.JackServerName) {
+    client = jack_client_open (toStringz(clientName), options, cast(jack_status_t *) &status, toStringz(serverName));
   } else {
-    client = jack_client_open (toStringz(clientName), options, &status);
+    client = jack_client_open (toStringz(clientName), options, cast(jack_status_t *) &status);
   }
 
   if(client == null) {

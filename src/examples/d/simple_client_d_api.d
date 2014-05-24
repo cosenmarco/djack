@@ -22,7 +22,7 @@ struct paTestData
 };
 
   
-__gshared JackClient client;
+JackClient client;
 
 /**
 * The process callback for this JACK application is called in a
@@ -70,7 +70,9 @@ int main (string[] args)
   __gshared paTestData data;
 
   JackPort outputPort1, outputPort2;
-  
+  Options options;
+  Status status;
+
   string clientName;
   string serverName = "";
 
@@ -78,6 +80,10 @@ int main (string[] args)
   if (args.length >= 2) {		
     // Client name specified
     clientName = args[1];
+    if (args.length >= 3) { /* server name specified? */
+      serverName = args[2];
+      options = Options.NullOption | Options.ServerName;
+    }
   } else {			
     // Use basename of argv[0]
     clientName= args[0];
@@ -92,14 +98,13 @@ int main (string[] args)
   data.left_phase = data.right_phase = 0;
 
 
-  JackStatus status;
-  client = clientOpen(clientName, JackOptions.JackNullOption, status, serverName);
+  client = clientOpen(clientName, options, status, serverName);
 
-  if (status & JackStatus.JackServerStarted) {
+  if (status & Status.ServerStarted) {
     stderr.write("JACK server started\n");
   }
 
-  if (status & JackStatus.JackNameNotUnique) {
+  if (status & Status.NameNotUnique) {
     clientName = client.name();
     stderr.write("unique name `%s' assigned\n", clientName);
   }
@@ -109,8 +114,8 @@ int main (string[] args)
   client.setShutdownCallback(&shutdown, &data);
 
 
-  outputPort1 = client.portRegister("output1", JACK_DEFAULT_AUDIO_TYPE, JackPortFlags.JackPortIsOutput, 0);
-  outputPort2 = client.portRegister("output2", JACK_DEFAULT_AUDIO_TYPE, JackPortFlags.JackPortIsOutput, 0);
+  outputPort1 = client.portRegister("output1", JACK_DEFAULT_AUDIO_TYPE, PortFlags.IsOutput, 0);
+  outputPort2 = client.portRegister("output2", JACK_DEFAULT_AUDIO_TYPE, PortFlags.IsOutput, 0);
 
   data.outputPort1 = outputPort1;
   data.outputPort2 = outputPort2;
@@ -127,8 +132,7 @@ int main (string[] args)
    * it.
    */
 
-  JackNamesArray ports = client.getPorts(null, null, JackPortFlags.JackPortIsPhysical | 
-      JackPortFlags.JackPortIsInput);
+  JackNamesArray ports = client.getPorts(null, null, PortFlags.IsPhysical | PortFlags.IsInput);
 
   client.connect(outputPort1.name(), ports.stringAt(0));
   client.connect(outputPort1.name(), ports.stringAt(1));

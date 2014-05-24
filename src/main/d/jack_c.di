@@ -37,13 +37,13 @@ alias uint32_t jack_port_id_t;
 alias uint32_t jack_port_type_id_t;
 
 enum jack_options_t {
-  JackNullOption = 0x00,
-  JackNoStartServer = 0x01,
-  JackUseExactName = 0x02,
-  JackServerName = 0x04,
-  JackLoadName = 0x08,
-  JackLoadInit = 0x10,
-  JackSessionID = 0x20
+    JackNullOption = 0x00,
+    JackNoStartServer = 0x01,
+    JackUseExactName = 0x02,
+    JackServerName = 0x04,
+    JackLoadName = 0x08,
+    JackLoadInit = 0x10,
+    JackSessionID = 0x20
 };
 
 const jack_options_t JackOpenOptions = ( jack_options_t.JackSessionID | 
@@ -125,12 +125,13 @@ alias uint64_t jack_unique_t;
 enum jack_position_bits_t {
     JackPositionBBT = 0x10,
     JackPositionTimecode = 0x20,
-    JackBBTFrameOffset =      0x40,
-    JackAudioVideoRatio =     0x80,
-    JackVideoFrameOffset =   0x100
+    JackBBTFrameOffset = 0x40,
+    JackAudioVideoRatio = 0x80,
+    JackVideoFrameOffset = 0x100
 };
 
-const jack_position_bits_t JACK_POSITION_MASK = (jack_position_bits_t.JackPositionBBT|jack_position_bits_t.JackPositionTimecode);
+const jack_position_bits_t JACK_POSITION_MASK = ( jack_position_bits_t.JackPositionBBT | 
+    jack_position_bits_t.JackPositionTimecode);
 
 struct jack_position_t {
     jack_unique_t       unique_1;       /**< unique ID */
@@ -279,9 +280,9 @@ alias ubyte jack_midi_data_t;
 
 struct jack_midi_event_t
 {
-        jack_nframes_t    time;   /**< Sample index at which event is valid */
-        size_t            size;   /**< Number of bytes of data in \a buffer */
-        jack_midi_data_t *buffer; /**< Raw MIDI data */
+    jack_nframes_t    time;   /**< Sample index at which event is valid */
+    size_t            size;   /**< Number of bytes of data in \a buffer */
+    jack_midi_data_t *buffer; /**< Raw MIDI data */
 };
 
 extern(C)
