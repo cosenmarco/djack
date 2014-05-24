@@ -3,14 +3,14 @@
    Licence GPLv3
 */
 
-import std.conv;
+import jack;
+
 import std.stdio;
 import std.math;
 import std.string;
 import core.stdc.signal;
 import core.stdc.stdlib;
 import core.thread;
-import core.memory;
 
 enum int SIGHUP = 1;
 enum int SIGQUIT = 3;
