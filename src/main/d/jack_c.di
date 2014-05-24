@@ -4,7 +4,7 @@
 */
 
 
-// NOTE: Those marked as deprecated are not included.
+// NOTE: Those marked as deprecated in the jack's .h files were included !!
 
 module jack_c;
 
@@ -36,7 +36,7 @@ alias _jack_client jack_client_t;
 alias uint32_t jack_port_id_t;
 alias uint32_t jack_port_type_id_t;
 
-enum JackOptions {
+enum jack_options_t {
   JackNullOption = 0x00,
   JackNoStartServer = 0x01,
   JackUseExactName = 0x02,
@@ -46,12 +46,15 @@ enum JackOptions {
   JackSessionID = 0x20
 };
 
-const JackOptions JackOpenOptions = (JackOptions.JackSessionID | JackOptions.JackServerName | JackOptions.JackNoStartServer | JackOptions.JackUseExactName);
-const JackOptions JackLoadOptions = (JackOptions.JackLoadInit | JackOptions.JackLoadName | JackOptions.JackUseExactName);
+const jack_options_t JackOpenOptions = ( jack_options_t.JackSessionID | 
+    jack_options_t.JackServerName | jack_options_t.JackNoStartServer | 
+    jack_options_t.JackUseExactName );
 
-alias JackOptions jack_options_t;
+const jack_options_t JackLoadOptions = ( jack_options_t.JackLoadInit | 
+    jack_options_t.JackLoadName | jack_options_t.JackUseExactName );
 
-enum JackStatus {
+
+enum jack_status_t {
     JackFailure = 0x01,
     JackInvalidOption = 0x02,
     JackNameNotUnique = 0x04,
@@ -67,14 +70,11 @@ enum JackStatus {
     JackClientZombie = 0x1000
 };
 
-alias JackStatus jack_status_t;
-
-enum JackLatencyCallbackMode {
+enum jack_latency_callback_mode_t {
     JackCaptureLatency,
     JackPlaybackLatency
 };
 
-alias JackLatencyCallbackMode jack_latency_callback_mode_t;
 alias void function(jack_latency_callback_mode_t mode, void *arg) _JackLatencyCallback;
 
 struct jack_latency_range_t
@@ -156,8 +156,8 @@ struct jack_position_t {
 
 };
 
-alias int function(jack_transport_state_t state, jack_position_t *pos, void *arg) JackSyncCallback;
-alias void function(jack_transport_state_t state, jack_nframes_t nframes, jack_position_t *pos, int new_pos, void *arg) JackTimebaseCallback;
+alias int function(jack_transport_state_t state, jack_position_t *pos, void *arg) _JackSyncCallback;
+alias void function(jack_transport_state_t state, jack_nframes_t nframes, jack_position_t *pos, int new_pos, void *arg) _JackTimebaseCallback;
 
 
 
@@ -165,9 +165,9 @@ alias void function(jack_transport_state_t state, jack_nframes_t nframes, jack_p
 extern(C)
 {
     int  jack_release_timebase (jack_client_t *client);
-    int  jack_set_sync_callback (jack_client_t *client, JackSyncCallback sync_callback, void *arg);
+    int  jack_set_sync_callback (jack_client_t *client, _JackSyncCallback sync_callback, void *arg);
     int  jack_set_sync_timeout (jack_client_t *client, jack_time_t timeout);
-    int  jack_set_timebase_callback (jack_client_t *client, int conditional, JackTimebaseCallback timebase_callback, void *arg);
+    int  jack_set_timebase_callback (jack_client_t *client, int conditional, _JackTimebaseCallback timebase_callback, void *arg);
     int  jack_transport_locate (jack_client_t *client, jack_nframes_t frame);
     jack_transport_state_t jack_transport_query ( jack_client_t *client, jack_position_t *pos);
     jack_nframes_t jack_get_current_transport_frame ( jack_client_t *client);

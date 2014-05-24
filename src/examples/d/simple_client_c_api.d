@@ -1,4 +1,10 @@
+/*
+   Copyright (c) 2014 Marco Cosentino
+   Licence GPLv3
+*/
+
 import jack_c;
+
 import std.conv;
 import std.stdio;
 import std.math;
@@ -21,25 +27,20 @@ struct paTestData
     float sine[TABLE_SIZE];
     int left_phase;
     int right_phase;
-string pippo="TEST";
 };
 
 static void signal_handler(int sig)
 {
-        if (client != null)
+    if (client != null)
         jack_client_close(client);
-        stderr.write("signal received, exiting ...\n");
-        exit(0);
+    stderr.write("signal received, exiting ...\n");
+    exit(0);
 }
 
 /**
 * The process callback for this JACK application is called in a
 * special realtime thread once for each audio cycle.
-*
-* This client follows a simple rule: when the JACK transport is
-* running, copy the input port to the output.  When it stops, exit.
 */
-
 extern(C) int
 process (jack_nframes_t nframes, void *arg)
 {
@@ -54,12 +55,15 @@ process (jack_nframes_t nframes, void *arg)
     {
         out1[i] = data.sine[data.left_phase];  // left 
         out2[i] = data.sine[data.right_phase];  // right 
+
         data.left_phase += 1;
         if( data.left_phase >= TABLE_SIZE ) data.left_phase -= TABLE_SIZE;
+
         data.right_phase += 3; // higher pitch so we can distinguish left and right.
         if( data.right_phase >= TABLE_SIZE ) data.right_phase -= TABLE_SIZE;
 
     }
+
     return 0;      
 }
 
@@ -108,15 +112,15 @@ main (string[] args)
     client = jack_client_open (std.string.toStringz(client_name), options, &status, std.string.toStringz(server_name));
     if (client == null) {
         stderr.write("jack_client_open() failed, status = 0x%2.0x\n", status);
-        if (status & JackStatus.JackServerFailed) {
+        if (status & jack_status_t.JackServerFailed) {
             stderr.write("Unable to connect to JACK server\n");
         }
         exit (1);
     }
-    if (status & JackStatus.JackServerStarted) {
+    if (status & jack_status_t.JackServerStarted) {
         stderr.write("JACK server started\n");
     }
-    if (status & JackStatus.JackNameNotUnique) {
+    if (status & jack_status_t.JackNameNotUnique) {
             client_name = std.conv.to!string( jack_get_client_name(client) );
             stderr.write("unique name `%s' assigned\n", client_name);
     }
