@@ -48,19 +48,19 @@ enum PortFlags : JackPortFlags {
   IsTerminal =  JackPortFlags.JackPortIsTerminal
 };
 
-alias jack_c.JackOpenOptions JackOpenOptions;
-alias jack_c.JackLoadOptions JackLoadOptions;
+alias jack_c.JackOpenOptions OpenOptions;
+alias jack_c.JackLoadOptions LoadOptions;
 
-alias jack_latency_range_t JackLatencyRange;
-alias jack_port_id_t JackPortID;
-alias jack_port_type_id_t JackPortTypeID;
+alias jack_latency_range_t LatencyRange;
+alias jack_port_id_t PortID;
+alias jack_port_type_id_t PortTypeID;
 
 alias jack_default_audio_sample_t DefaultAudioSample;
 
 alias jack_c.JACK_DEFAULT_AUDIO_TYPE JACK_DEFAULT_AUDIO_TYPE;
 
 
-interface JackNamesArray
+interface NamesArray
 {
     string stringAt(int index);
     //const char* ptrAt(); ?? useful?
@@ -73,11 +73,11 @@ interface JackNamesArray
     }
 }
 
-interface JackPort
+interface Port
 {
-    void* getBuffer(JackNFrames nframes);
+    void* getBuffer(NFrames nframes);
     bool isConnectedTo(string other_port_name);
-    JackNamesArray getConnections();
+    NamesArray getConnections();
     void aliasSet(string al);
     void aliasUnset(string al);
     
@@ -92,52 +92,52 @@ interface JackPort
         string shortname();
         uint flags();
         string type();
-        JackPortID typeID();
+        PortID typeID();
         bool connected();
         string[] aliases();
         bool isMonitoringInput();
 
-        JackLatencyRange latencyRange();
-        void latencyRange(JackLatencyRange lr);
+        LatencyRange latencyRange();
+        void latencyRange(LatencyRange lr);
     }
 }
 
-alias jack_nframes_t JackNFrames;
-alias jack_time_t JackTime;
+alias jack_nframes_t NFrames;
+alias jack_time_t Time;
 
-alias int function(JackNFrames nframes, void* data) JackProcessCallback;
-alias void* function(void* data) JackThreadCallback;
-alias void function(void* data) JackThreadInitCallback;
-alias int function(void* data) JackGraphOrderCallback;
-alias int function(void* data) JackXRunCallback;
-alias int function(JackNFrames nframes, void* data) JackBufferSizeCallback;
-alias int function(JackNFrames nframes, void* data) JackSampleRateCallback;
-alias void function(JackPortID port, int register, void* data) JackPortRegistrationCallback;
-alias void function(string name, int register, void* data) JackClientRegistrationCallback;
-alias void function(JackPort a, JackPort b, int connect, void* data) JackPortConnectCallback;
-alias int function(JackPort port, string old_name, string new_name, void* data) JackPortRenameCallback;
-alias void function(int starting, void* data) JackFreewheelCallback;
-alias void function(void* data) JackShutdownCallback;
-alias void function(Status code, string reason, void* data) JackInfoShutdownCallback;
-alias void function(LatencyCallbackMode mode, void* data) JackLatencyCallback;
+alias int function(NFrames nframes, void* data) ProcessCallback;
+alias void* function(void* data) ThreadCallback;
+alias void function(void* data) ThreadInitCallback;
+alias int function(void* data) GraphOrderCallback;
+alias int function(void* data) XRunCallback;
+alias int function(NFrames nframes, void* data) BufferSizeCallback;
+alias int function(NFrames nframes, void* data) SampleRateCallback;
+alias void function(PortID port, int register, void* data) PortRegistrationCallback;
+alias void function(string name, int register, void* data) ClientRegistrationCallback;
+alias void function(Port a, Port b, int connect, void* data) PortConnectCallback;
+alias int function(Port port, string old_name, string new_name, void* data) PortRenameCallback;
+alias void function(int starting, void* data) FreewheelCallback;
+alias void function(void* data) ShutdownCallback;
+alias void function(Status code, string reason, void* data) InfoShutdownCallback;
+alias void function(LatencyCallbackMode mode, void* data) LatencyCallback;
 
-interface JackClient
+interface Client
 {
     void close();
     void activate();
     void deactivate();
     void engineTakeoverTimebase();
 
-    JackPort portRegister(string port_name, string port_type, JackPortFlags flags, uint buffer_size);
-    void portUnregister(JackPort port);
-    bool portIsMine(JackPort port);
-    JackNamesArray portGetAllConnections(JackPort port);
+    Port portRegister(string port_name, string port_type, PortFlags flags, uint buffer_size);
+    void portUnregister(Port port);
+    bool portIsMine(Port port);
+    NamesArray portGetAllConnections(Port port);
     void portRequestMonitorByName(string name, bool onoff);
-    void portDisconnect(JackPort port);
+    void portDisconnect(Port port);
     size_t portTypeGetBufferSize(string type);
-    JackNamesArray getPorts(string pattern, string pattern_type, JackPortFlags flags);
-    JackPort getByName(string port_name);
-    JackPort getByID(JackPortID id);
+    NamesArray getPorts(string pattern, string pattern_type, PortFlags flags);
+    Port getByName(string port_name);
+    Port getByID(PortID id);
 
     void connect(string source_port, string dest_port);
     void disconnect(string source_port, string dest_port);
@@ -145,21 +145,21 @@ interface JackClient
     void recomputeTotalLatencies();
     
     // Callbacks
-    void setProcessCallback(JackProcessCallback callback, void* data);
-    void setShutdownCallback(JackShutdownCallback callback, void* data);
-    void setFreewheelCallback(JackFreewheelCallback callback, void* data);
-    void setBufferSizeCallback(JackBufferSizeCallback callback, void* data);
-    void setSampleRateCallback(JackSampleRateCallback callback, void* data);
-    void setClientRegistrationCallback(JackClientRegistrationCallback callback, void* data);
-    void setPortRegistrationCallback(JackPortRegistrationCallback callback, void* data);
-    void setPortConnectCallback(JackPortConnectCallback callback, void* data);
-    void setPortRenameCallback(JackPortRenameCallback callback, void* data);
-    void setGraphOrderCallback(JackGraphOrderCallback callback, void* data);
-    void setXRunCallback(JackXRunCallback callback, void* data);
-    void setLatencyCallback(JackLatencyCallback callback, void* data);
+    void setProcessCallback(ProcessCallback callback, void* data);
+    void setShutdownCallback(ShutdownCallback callback, void* data);
+    void setFreewheelCallback(FreewheelCallback callback, void* data);
+    void setBufferSizeCallback(BufferSizeCallback callback, void* data);
+    void setSampleRateCallback(SampleRateCallback callback, void* data);
+    void setClientRegistrationCallback(ClientRegistrationCallback callback, void* data);
+    void setPortRegistrationCallback(PortRegistrationCallback callback, void* data);
+    void setPortConnectCallback(PortConnectCallback callback, void* data);
+    void setPortRenameCallback(PortRenameCallback callback, void* data);
+    void setGraphOrderCallback(GraphOrderCallback callback, void* data);
+    void setXRunCallback(XRunCallback callback, void* data);
+    void setLatencyCallback(LatencyCallback callback, void* data);
 
-    JackTime framesToTime(JackNFrames frames);
-    JackNFrames timeToFrames(JackTime time);
+    Time framesToTime(NFrames frames);
+    NFrames timeToFrames(Time time);
 
     @property
     {
@@ -169,15 +169,15 @@ interface JackClient
         JackThread thread();
         bool isRealtime();
         float cpuLoad();
-        JackNFrames samplerate();
-        JackNFrames buffersize();
-        JackNFrames framesSinceCycleStart();
-        JackNFrames frameTime();
-        JackNFrames lastFrameTime();
+        NFrames samplerate();
+        NFrames buffersize();
+        NFrames framesSinceCycleStart();
+        NFrames frameTime();
+        NFrames lastFrameTime();
     }
 }
 
-struct JackVersion
+struct Version
 {
     int major;
     int minor;
@@ -203,7 +203,7 @@ class JackException : Exception {
   }
 }
 
-class JackNamesArrayImplementation : JackNamesArray {
+class NamesArrayImplementation : NamesArray {
   immutable(char) ** rawPorts;
   bool disposed;
   int count;
@@ -236,7 +236,7 @@ class JackNamesArrayImplementation : JackNamesArray {
   }
 }
 
-class JackPortImplementation : JackPort {
+class PortImplementation : Port {
   jack_port_t* port;
 
   this(jack_port_t* port) {
@@ -251,19 +251,19 @@ class JackPortImplementation : JackPort {
   string shortname() { throw new Exception("Not yet implemented"); }
   uint flags() { throw new Exception("Not yet implemented"); }
   string type() { throw new Exception("Not yet implemented"); }
-  JackPortID typeID() { throw new Exception("Not yet implemented"); }
+  PortID typeID() { throw new Exception("Not yet implemented"); }
   bool connected() { throw new Exception("Not yet implemented"); }
   string[] aliases() { throw new Exception("Not yet implemented"); }
   bool isMonitoringInput() { throw new Exception("Not yet implemented"); }
 
-  JackLatencyRange latencyRange() { throw new Exception("Not yet implemented"); }
-  void latencyRange(JackLatencyRange lr) { throw new Exception("Not yet implemented"); }
+  LatencyRange latencyRange() { throw new Exception("Not yet implemented"); }
+  void latencyRange(LatencyRange lr) { throw new Exception("Not yet implemented"); }
 
-  void* getBuffer(JackNFrames nframes) {
+  void* getBuffer(NFrames nframes) {
     return jack_port_get_buffer(port, nframes);
   }
   bool isConnectedTo(string other_port_name) { throw new Exception("Not yet implemented"); }
-  JackNamesArray getConnections() { throw new Exception("Not yet implemented"); }
+  NamesArray getConnections() { throw new Exception("Not yet implemented"); }
   void aliasSet(string al) { throw new Exception("Not yet implemented"); }
   void aliasUnset(string al) { throw new Exception("Not yet implemented"); }
 
@@ -273,7 +273,7 @@ class JackPortImplementation : JackPort {
 
 
 
-class JackClientImplementation : JackClient {
+class ClientImplementation : Client {
   jack_client_t* client;
 
   this(jack_client_t* client) {
@@ -300,7 +300,7 @@ class JackClientImplementation : JackClient {
 
   void engineTakeoverTimebase()  { throw new Exception("Not yet implemented"); }
 
-  JackPort portRegister(string portName, string portType, JackPortFlags flags, uint bufferSize) {
+  Port portRegister(string portName, string portType, PortFlags flags, uint bufferSize) {
     jack_port_t* port = jack_port_register (client, toStringz(portName), 
         toStringz(portType), flags, bufferSize);
 
@@ -308,27 +308,27 @@ class JackClientImplementation : JackClient {
       throw new JackException("Cannot register the port");
     }
 
-    return new JackPortImplementation(port);
+    return new PortImplementation(port);
   }
 
-  void portUnregister(JackPort port) { throw new Exception("Not yet implemented"); }
-  bool portIsMine(JackPort port) { throw new Exception("Not yet implemented"); }
-  JackNamesArray portGetAllConnections(JackPort port) { throw new Exception("Not yet implemented"); }
+  void portUnregister(Port port) { throw new Exception("Not yet implemented"); }
+  bool portIsMine(Port port) { throw new Exception("Not yet implemented"); }
+  NamesArray portGetAllConnections(Port port) { throw new Exception("Not yet implemented"); }
   void portRequestMonitorByName(string name, bool onoff) { throw new Exception("Not yet implemented"); }
-  void portDisconnect(JackPort port) { throw new Exception("Not yet implemented"); }
+  void portDisconnect(Port port) { throw new Exception("Not yet implemented"); }
   size_t portTypeGetBufferSize(string type) { throw new Exception("Not yet implemented"); }
 
-  JackNamesArray getPorts(string pattern, string patternType, JackPortFlags flags) {
+  NamesArray getPorts(string pattern, string patternType, PortFlags flags) {
     immutable(char) ** rawPorts = jack_get_ports (client, toStringz(pattern), 
         toStringz(patternType), flags);
     if(rawPorts == null) {
       throw new JackException("Cannot get the ports");
     }
-    return new JackNamesArrayImplementation(rawPorts);
+    return new NamesArrayImplementation(rawPorts);
   }
 
-  JackPort getByName(string port_name) { throw new Exception("Not yet implemented"); }
-  JackPort getByID(JackPortID id) { throw new Exception("Not yet implemented"); }
+  Port getByName(string port_name) { throw new Exception("Not yet implemented"); }
+  Port getByID(PortID id) { throw new Exception("Not yet implemented"); }
 
 
   void connect(string sourcePort, string destPort) {
@@ -345,67 +345,67 @@ class JackClientImplementation : JackClient {
 
   void recomputeTotalLatencies() { throw new Exception("Not yet implemented"); }
 
-  void setProcessCallback(JackProcessCallback callback, void* data) {
+  void setProcessCallback(ProcessCallback callback, void* data) {
     if(jack_set_process_callback (client, callback, data)) {
       throw new JackException("Cannot set process callback");
     }
   }
-  void setShutdownCallback(JackShutdownCallback callback, void* data) {
+  void setShutdownCallback(ShutdownCallback callback, void* data) {
     jack_on_shutdown (client, callback, data);
   }
-  void setFreewheelCallback(JackFreewheelCallback callback, void* data) { 
+  void setFreewheelCallback(FreewheelCallback callback, void* data) { 
     if(jack_set_freewheel_callback (client, callback, data)) {
       throw new JackException("Cannot set freewheel callback");
     }
   }
-  void setBufferSizeCallback(JackBufferSizeCallback callback, void* data) { 
+  void setBufferSizeCallback(BufferSizeCallback callback, void* data) { 
     if(jack_set_buffer_size_callback (client, callback, data)) {
       throw new JackException("Cannot set buffer size callback");
     }
   }
-  void setSampleRateCallback(JackSampleRateCallback callback, void* data) { 
+  void setSampleRateCallback(SampleRateCallback callback, void* data) { 
     if(jack_set_sample_rate_callback (client, callback, data)) {
       throw new JackException("Cannot set sample rate callback");
     }
   }
-  void setClientRegistrationCallback(JackClientRegistrationCallback callback, void* data) { 
+  void setClientRegistrationCallback(ClientRegistrationCallback callback, void* data) { 
     if(jack_set_client_registration_callback (client, callback, data)) {
       throw new JackException("Cannot set client registration callback");
     }
   }
-  void setPortRegistrationCallback(JackPortRegistrationCallback callback, void* data) { 
+  void setPortRegistrationCallback(PortRegistrationCallback callback, void* data) { 
     if(jack_set_port_registration_callback (client, callback, data)) {
       throw new JackException("Cannot set port registration callback");
     }
   }
-  void setPortConnectCallback(JackPortConnectCallback callback, void* data) { 
+  void setPortConnectCallback(PortConnectCallback callback, void* data) { 
     if(jack_set_port_connect_callback (client, callback, data)) {
       throw new JackException("Cannot set port connect callback");
     }
   }
-  void setPortRenameCallback(JackPortRenameCallback callback, void* data) { 
+  void setPortRenameCallback(PortRenameCallback callback, void* data) { 
     if(jack_set_port_rename_callback (client, callback, data)) {
       throw new JackException("Cannot set port rename callback");
     }
   }
-  void setGraphOrderCallback(JackGraphOrderCallback callback, void* data) { 
+  void setGraphOrderCallback(GraphOrderCallback callback, void* data) { 
     if(jack_set_graph_order_callback (client, callback, data)) {
       throw new JackException("Cannot set graph order callback");
     }
   }
-  void setXRunCallback(JackXRunCallback callback, void* data) { 
+  void setXRunCallback(XRunCallback callback, void* data) { 
     if(jack_set_xrun_callback (client, callback, data)) {
       throw new JackException("Cannot set xrun callback");
     }
   }
-  void setLatencyCallback(JackLatencyCallback callback, void* data) { 
+  void setLatencyCallback(LatencyCallback callback, void* data) { 
     if(jack_set_latency_callback (client, callback, data)) {
       throw new JackException("Cannot set latency callback");
     }
   }
 
-  JackTime framesToTime(JackNFrames frames) { throw new Exception("Not yet implemented"); }
-  JackNFrames timeToFrames(JackTime time) { throw new Exception("Not yet implemented"); }
+  Time framesToTime(NFrames frames) { throw new Exception("Not yet implemented"); }
+  NFrames timeToFrames(Time time) { throw new Exception("Not yet implemented"); }
 
 
   string name() {
@@ -417,20 +417,20 @@ class JackClientImplementation : JackClient {
   JackThread thread() { throw new Exception("Not yet implemented"); }
   bool isRealtime() { throw new Exception("Not yet implemented"); }
   float cpuLoad() { throw new Exception("Not yet implemented"); }
-  JackNFrames samplerate() { throw new Exception("Not yet implemented"); }
-  JackNFrames buffersize() { throw new Exception("Not yet implemented"); }
-  JackNFrames framesSinceCycleStart() { throw new Exception("Not yet implemented"); }
-  JackNFrames frameTime() { throw new Exception("Not yet implemented"); }
-  JackNFrames lastFrameTime() { throw new Exception("Not yet implemented"); }
+  NFrames samplerate() { throw new Exception("Not yet implemented"); }
+  NFrames buffersize() { throw new Exception("Not yet implemented"); }
+  NFrames framesSinceCycleStart() { throw new Exception("Not yet implemented"); }
+  NFrames frameTime() { throw new Exception("Not yet implemented"); }
+  NFrames lastFrameTime() { throw new Exception("Not yet implemented"); }
 }
 
 
 // ######### Global functions
 
-static JackClient clientOpen(string clientName, Options options, out Status status, string serverName) {
+static Client clientOpen(string clientName, Options options, out Status status, string serverName) {
   jack_client_t* client;
 
-  if( status & Options.JackServerName) {
+  if( status & Options.ServerName) {
     client = jack_client_open (toStringz(clientName), options, cast(jack_status_t *) &status, toStringz(serverName));
   } else {
     client = jack_client_open (toStringz(clientName), options, cast(jack_status_t *) &status);
@@ -440,12 +440,12 @@ static JackClient clientOpen(string clientName, Options options, out Status stat
     throw new JackException("Cannot open client", status);
   }
 
-  return new JackClientImplementation(client);
+  return new ClientImplementation(client);
 }
-static JackVersion getVersion() { throw new Exception("Not yet implemented"); }
+static Version getVersion() { throw new Exception("Not yet implemented"); }
 static string getVersionString() { throw new Exception("Not yet implemented"); }
 static int getClientPID(string name) { throw new Exception("Not yet implemented"); }
 static int portNameSize() { throw new Exception("Not yet implemented"); }
 static int portTypeSize() { throw new Exception("Not yet implemented"); }
-static JackTime getTime() { throw new Exception("Not yet implemented"); }
+static Time getTime() { throw new Exception("Not yet implemented"); }
 

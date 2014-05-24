@@ -13,7 +13,7 @@ import core.thread;
 enum int SIGHUP = 1;
 enum int SIGQUIT = 3;
 
-JackClient client;
+Client client;
 
 static void signal_handler(int sig)
 {
@@ -25,13 +25,13 @@ static void signal_handler(int sig)
 }
 
 extern(C) static void
-port_callback (JackPortID port, int yn, void* arg)
+port_callback (PortID port, int yn, void* arg)
 {
   stdout.writeln ("Port ", port, (yn ? " registered" : " unregistered"));
 }
 
 extern(C) static void
-connect_callback (JackPortID a, JackPortID b, int yn, void* arg)
+connect_callback (PortID a, PortID b, int yn, void* arg)
 {
   stdout.writeln ("Ports ", a, " and ", b, (yn ? " connected" : " disconnected"));
 }

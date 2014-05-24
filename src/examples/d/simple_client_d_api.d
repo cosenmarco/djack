@@ -19,14 +19,14 @@ enum int SIGQUIT = 3;
 const int TABLE_SIZE = 200;
 struct paTestData
 {
-  JackPort outputPort1, outputPort2;
+  Port outputPort1, outputPort2;
   float sine[TABLE_SIZE];
   int left_phase;
   int right_phase;
 };
 
   
-JackClient client;
+Client client;
 
 /**
 * The process callback for this JACK application is called in a
@@ -34,12 +34,12 @@ JackClient client;
 */
 
 extern(C) int
-process (JackNFrames nframes, void* arg)
+process (NFrames nframes, void* arg)
 {
   paTestData* data = cast(paTestData *) arg;
 
-  JackPort outputPort1 = data.outputPort1;
-  JackPort outputPort2 = data.outputPort2;
+  Port outputPort1 = data.outputPort1;
+  Port outputPort2 = data.outputPort2;
 
   DefaultAudioSample* out1, out2;
   int i;
@@ -73,7 +73,7 @@ int main (string[] args)
 {
   __gshared paTestData data;
 
-  JackPort outputPort1, outputPort2;
+  Port outputPort1, outputPort2;
   Options options;
   Status status;
 
@@ -136,7 +136,7 @@ int main (string[] args)
    * it.
    */
 
-  JackNamesArray ports = client.getPorts(null, null, PortFlags.IsPhysical | PortFlags.IsInput);
+  NamesArray ports = client.getPorts(null, null, PortFlags.IsPhysical | PortFlags.IsInput);
 
   client.connect(outputPort1.name(), ports.stringAt(0));
   client.connect(outputPort1.name(), ports.stringAt(1));
