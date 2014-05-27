@@ -48,6 +48,24 @@ enum PortFlags : JackPortFlags {
   IsTerminal =  JackPortFlags.JackPortIsTerminal
 };
 
+enum TransportState : jack_transport_state_t {
+  Stopped = jack_transport_state_t.JackTransportStopped,
+  Rolling = jack_transport_state_t.JackTransportRolling,
+  Looping = jack_transport_state_t.JackTransportLooping,
+  Starting = jack_transport_state_t.JackTransportStarting,
+  NetStarting = jack_transport_state_t.JackTransportNetStarting,
+};
+
+enum PositionBits : jack_position_bits_t {
+  PositionBBT =       jack_position_bits_t.JackPositionBBT,
+  PositionTimecode =  jack_position_bits_t.JackPositionTimecode,
+  BBTFrameOffset =    jack_position_bits_t.JackBBTFrameOffset,
+  AudioVideoRatio =   jack_position_bits_t.JackAudioVideoRatio,
+  VideoFrameOffset =  jack_position_bits_t.JackVideoFrameOffset
+};
+
+alias jack_c.JACK_POSITION_MASK JACK_POSITION_MASK;
+
 alias jack_c.JackOpenOptions OpenOptions;
 alias jack_c.JackLoadOptions LoadOptions;
 
@@ -56,9 +74,35 @@ alias jack_port_id_t PortID;
 alias jack_port_type_id_t PortTypeID;
 
 alias jack_default_audio_sample_t DefaultAudioSample;
-
 alias jack_c.JACK_DEFAULT_AUDIO_TYPE JACK_DEFAULT_AUDIO_TYPE;
 
+alias jack_c.jack_unique_t Unique;
+alias jack_c.jack_shmsize_t Shmsize;
+alias jack_nframes_t NFrames;
+alias jack_time_t Time;
+
+struct Position {
+  Unique unique_1;
+  Time usecs;
+  NFrames frame_rate;
+  NFrames frame;
+  PositionBits valid;
+  int bar;
+  int beat;
+  int tick;
+  double bar_start_tick;
+  float beats_per_bar;
+  float beat_type;
+  double ticks_per_beat;
+  double beats_per_minute;
+  double frame_time;
+  double next_time; 
+  NFrames bbt_offset;  
+  float audio_frames_per_video_frame; 
+  NFrames video_offset;
+  int padding[7];
+  Unique unique_2;
+}
 
 interface NamesArray
 {
@@ -102,8 +146,6 @@ interface Port
     }
 }
 
-alias jack_nframes_t NFrames;
-alias jack_time_t Time;
 
 alias int function(NFrames nframes, void* data) ProcessCallback;
 alias void* function(void* data) ThreadCallback;
@@ -120,6 +162,8 @@ alias void function(int starting, void* data) FreewheelCallback;
 alias void function(void* data) ShutdownCallback;
 alias void function(Status code, string reason, void* data) InfoShutdownCallback;
 alias void function(LatencyCallbackMode mode, void* data) LatencyCallback;
+alias int function(TransportState state, Position *pos, void *arg) SyncCallback;
+alias void function(TransportState state, NFrames nframes, Position *pos, int new_pos, void *arg) TimebaseCallback;
 
 interface Client
 {
@@ -128,6 +172,7 @@ interface Client
     void deactivate();
     void engineTakeoverTimebase();
 
+    // Port management
     Port portRegister(string port_name, string port_type, PortFlags flags, uint buffer_size);
     void portUnregister(Port port);
     bool portIsMine(Port port);
@@ -138,11 +183,22 @@ interface Client
     NamesArray getPorts(string pattern, string pattern_type, PortFlags flags);
     Port getByName(string port_name);
     Port getByID(PortID id);
-
     void connect(string source_port, string dest_port);
     void disconnect(string source_port, string dest_port);
-
     void recomputeTotalLatencies();
+
+
+    // Transport
+    void releaseTimebase();
+    void transportStart();
+    void transportStop();
+    void setSyncTimeout(Time timeout);
+    void transportLocate(NFrames frame);
+    TransportState transportQuery(Position *pos);
+    NFrames getCurrentTransportFrame();
+    void trasnportReposition(Position *pos);
+
+
     
     // Callbacks
     void setProcessCallback(ProcessCallback callback, void* data);
@@ -157,6 +213,8 @@ interface Client
     void setGraphOrderCallback(GraphOrderCallback callback, void* data);
     void setXRunCallback(XRunCallback callback, void* data);
     void setLatencyCallback(LatencyCallback callback, void* data);
+    void setSyncCallback(SyncCallback callback, void* data);
+    void setTimebaseCallback(int conditional, TimebaseCallback callback, void* data);
 
     Time framesToTime(NFrames frames);
     NFrames timeToFrames(Time time);
@@ -345,6 +403,42 @@ class ClientImplementation : Client {
 
   void recomputeTotalLatencies() { throw new Exception("Not yet implemented"); }
 
+  void releaseTimebase() {
+    jack_release_timebase(client);
+  }
+
+  void transportStart() {
+    jack_transport_start(client);
+  }
+
+  void transportStop() {
+    jack_transport_stop(client);
+  }
+
+  void setSyncTimeout(Time timeout) { 
+    jack_set_sync_timeout(client, timeout);
+  }
+
+  void transportLocate(NFrames frame){ 
+    if(jack_transport_locate(client, frame)) {
+      throw new JackException("Cannot locate frame " ~ to!string (frame));
+    }
+  }
+
+  TransportState transportQuery(Position *pos) { 
+    return cast(TransportState) jack_transport_query(client, cast(jack_position_t *) pos);
+  }
+
+  NFrames getCurrentTransportFrame() { 
+    return jack_get_current_transport_frame(client);
+  }
+
+  void trasnportReposition(Position *pos) {
+    if(jack_transport_reposition(client, cast(jack_position_t *) pos)) {
+      throw new JackException("Cannot reposition");
+    }
+  }
+
   void setProcessCallback(ProcessCallback callback, void* data) {
     if(jack_set_process_callback (client, callback, data)) {
       throw new JackException("Cannot set process callback");
@@ -401,6 +495,13 @@ class ClientImplementation : Client {
   void setLatencyCallback(LatencyCallback callback, void* data) { 
     if(jack_set_latency_callback (client, callback, data)) {
       throw new JackException("Cannot set latency callback");
+    }
+  }
+  void setSyncCallback(SyncCallback callback, void* data){
+  }
+  void setTimebaseCallback(int conditional, TimebaseCallback callback, void* data) {
+    if (jack_set_timebase_callback(client, conditional, callback, data)) {
+      throw new JackException("Cannot set timebase callback");
     }
   }
 
