@@ -9,6 +9,27 @@ import jack_c;
 import std.conv;
 import std.string;
 
+alias jack_c.jack_native_thread_t ThreadId;
+alias jack_c.JACK_POSITION_MASK JACK_POSITION_MASK;
+
+alias jack_c.JackOpenOptions OpenOptions;
+alias jack_c.JackLoadOptions LoadOptions;
+
+alias jack_latency_range_t LatencyRange;
+alias jack_port_id_t PortID;
+alias jack_port_type_id_t PortTypeID;
+
+alias jack_default_audio_sample_t DefaultAudioSample;
+alias jack_c.JACK_DEFAULT_AUDIO_TYPE JACK_DEFAULT_AUDIO_TYPE;
+
+alias jack_c.jack_unique_t Unique;
+alias jack_c.jack_shmsize_t Shmsize;
+alias jack_nframes_t NFrames;
+alias jack_time_t Time;
+
+alias jack_c.JACK_MAX_FRAMES MAX_FRAMES;
+alias jack_c.JACK_LOAD_INIT_LIMIT LOAD_INIT_LIMIT;
+
 enum Options : jack_options_t {
   NullOption =    jack_options_t.JackNullOption,
   NoStartServer = jack_options_t.JackNoStartServer,
@@ -64,22 +85,6 @@ enum PositionBits : jack_position_bits_t {
   VideoFrameOffset =  jack_position_bits_t.JackVideoFrameOffset
 };
 
-alias jack_c.JACK_POSITION_MASK JACK_POSITION_MASK;
-
-alias jack_c.JackOpenOptions OpenOptions;
-alias jack_c.JackLoadOptions LoadOptions;
-
-alias jack_latency_range_t LatencyRange;
-alias jack_port_id_t PortID;
-alias jack_port_type_id_t PortTypeID;
-
-alias jack_default_audio_sample_t DefaultAudioSample;
-alias jack_c.JACK_DEFAULT_AUDIO_TYPE JACK_DEFAULT_AUDIO_TYPE;
-
-alias jack_c.jack_unique_t Unique;
-alias jack_c.jack_shmsize_t Shmsize;
-alias jack_nframes_t NFrames;
-alias jack_time_t Time;
 
 struct Position {
   Unique unique_1;
@@ -106,9 +111,9 @@ struct Position {
 
 interface NamesArray
 {
-    string stringAt(int index);
-    //const char* ptrAt(); ?? useful?
+    string stringAt(size_t index);
     void dispose();
+    string opIndex(size_t index);
 
     @property
     {
@@ -120,29 +125,30 @@ interface NamesArray
 interface Port
 {
     void* getBuffer(NFrames nframes);
-    bool isConnectedTo(string other_port_name);
+    bool isConnectedTo(string otherPortName);
     NamesArray getConnections();
     void aliasSet(string al);
     void aliasUnset(string al);
     
-    void request_monitor(bool onoff);
-    void ensure_monitor(bool onoff);
-    
+    void requestMonitor(bool onoff);
+    void ensureMonitor(bool onoff);
+
+    LatencyRange getLatencyRange(LatencyCallbackMode callbackMode);
+    void setLatencyRange(LatencyCallbackMode callbackMode, LatencyRange lr);
+
     @property
     {
         string name();
         void name(string newname);
 
         string shortname();
-        uint flags();
+        PortFlags flags();
         string type();
         PortID typeID();
         bool connected();
-        string[] aliases();
+        // TODO: It's not clear how can I interface to get the aliases
+        //string[] aliases();
         bool isMonitoringInput();
-
-        LatencyRange latencyRange();
-        void latencyRange(LatencyRange lr);
     }
 }
 
@@ -170,7 +176,6 @@ interface Client
     void close();
     void activate();
     void deactivate();
-    void engineTakeoverTimebase();
 
     // Port management
     Port portRegister(string port_name, string port_type, PortFlags flags, uint buffer_size);
@@ -222,9 +227,7 @@ interface Client
     @property
     {
         string name();
-        int nameSize(); 
-        int pid();
-        JackThread thread();
+        ThreadId threadId();
         bool isRealtime();
         float cpuLoad();
         NFrames samplerate();
@@ -242,8 +245,6 @@ struct Version
     int micro;
     int proto;
 }
-
-interface JackThread {}
 
 
 // ######### Implementation ###########
@@ -273,6 +274,10 @@ class NamesArrayImplementation : NamesArray {
     while( rawPorts[count] != null ) count ++;
   }
 
+  ~this() {
+    dispose();
+  }
+
   void dispose() {
     jack_free(rawPorts);
     disposed = true;
@@ -282,7 +287,7 @@ class NamesArrayImplementation : NamesArray {
     return disposed;
   }
 
-  string stringAt(int index) {
+  string stringAt(size_t index) {
     if(index >= count) {
       throw new JackException("Requested index out of bound");
     }
@@ -291,6 +296,10 @@ class NamesArrayImplementation : NamesArray {
 
   int length() {
     return count;
+  }
+
+  string opIndex(size_t index) {
+    return stringAt(index);
   }
 }
 
@@ -305,28 +314,90 @@ class PortImplementation : Port {
     return to!string( jack_port_name(port) );
   }
 
-  void name(string newName) { throw new Exception("Not yet implemented"); }
-  string shortname() { throw new Exception("Not yet implemented"); }
-  uint flags() { throw new Exception("Not yet implemented"); }
-  string type() { throw new Exception("Not yet implemented"); }
-  PortID typeID() { throw new Exception("Not yet implemented"); }
-  bool connected() { throw new Exception("Not yet implemented"); }
-  string[] aliases() { throw new Exception("Not yet implemented"); }
-  bool isMonitoringInput() { throw new Exception("Not yet implemented"); }
+  void name(string newName) {
+    if( jack_port_set_name(port, toStringz(newName)) ) {
+      throw new JackException("Cannot set port name to " ~ newName);
+    }
+  }
 
-  LatencyRange latencyRange() { throw new Exception("Not yet implemented"); }
-  void latencyRange(LatencyRange lr) { throw new Exception("Not yet implemented"); }
+  string shortname() {
+    return to!string( jack_port_short_name(port) );
+  }
+
+  PortFlags flags() {
+    return cast(PortFlags) jack_port_flags(port);
+  }
+
+  string type() {
+    return to!string (jack_port_type(port));
+  }
+
+  PortID typeID() {
+    return jack_port_type_id(port);
+  }
+
+  bool connected() {
+    return (jack_port_connected(port) != 0);
+  }
+
+  bool isMonitoringInput() {
+    return (jack_port_monitoring_input(port) != 0);
+  }
+
+
+  LatencyRange getLatencyRange(LatencyCallbackMode callbackMode) {
+    LatencyRange result;
+    jack_port_get_latency_range(port, callbackMode, &result);
+    return result;
+  }
+
+  void setLatencyRange(LatencyCallbackMode callbackMode, LatencyRange lr) {
+    jack_port_set_latency_range(port, callbackMode, &lr);
+  }
 
   void* getBuffer(NFrames nframes) {
     return jack_port_get_buffer(port, nframes);
   }
-  bool isConnectedTo(string other_port_name) { throw new Exception("Not yet implemented"); }
-  NamesArray getConnections() { throw new Exception("Not yet implemented"); }
-  void aliasSet(string al) { throw new Exception("Not yet implemented"); }
-  void aliasUnset(string al) { throw new Exception("Not yet implemented"); }
 
-  void request_monitor(bool onoff) { throw new Exception("Not yet implemented"); }
-  void ensure_monitor(bool onoff) { throw new Exception("Not yet implemented"); }
+  bool isConnectedTo(string otherPortName) { 
+    return (jack_port_connected_to(port, toStringz(otherPortName)) != 0);
+  }
+
+  NamesArray getConnections() {
+    immutable(char)** rawConnections = jack_port_get_connections(port);
+    if(rawConnections == null) {
+      throw new JackException("Cannot get port connections");
+    }
+    return new NamesArrayImplementation(rawConnections);
+  }
+ 
+  void aliasSet(string al) {
+    if( jack_port_set_alias(port, toStringz(al)) ) {
+      throw new JackException("Cannot set port alias " ~ al);
+    }
+  }
+
+  void aliasUnset(string al) {
+    if( jack_port_unset_alias(port, toStringz(al)) ) {
+      throw new JackException("Cannot unset port alias " ~ al);
+    }
+  }
+
+  void requestMonitor(bool onoff) {
+    if( jack_port_request_monitor(port, to!int (onoff)) ){
+      throw new JackException("Cannot request port monitor for port " ~ this.name);
+    }
+  }
+
+  void ensureMonitor(bool onoff) {
+    if( jack_port_ensure_monitor(port, to!int (onoff)) ){
+      throw new JackException("Cannot ensure port monitor for port " ~ this.name);
+    }
+  }
+
+  @property jack_port_t* rawPointer() {
+    return port;
+  }
 }
 
 
@@ -356,8 +427,6 @@ class ClientImplementation : Client {
     }
   }
 
-  void engineTakeoverTimebase()  { throw new Exception("Not yet implemented"); }
-
   Port portRegister(string portName, string portType, PortFlags flags, uint bufferSize) {
     jack_port_t* port = jack_port_register (client, toStringz(portName), 
         toStringz(portType), flags, bufferSize);
@@ -369,12 +438,41 @@ class ClientImplementation : Client {
     return new PortImplementation(port);
   }
 
-  void portUnregister(Port port) { throw new Exception("Not yet implemented"); }
-  bool portIsMine(Port port) { throw new Exception("Not yet implemented"); }
-  NamesArray portGetAllConnections(Port port) { throw new Exception("Not yet implemented"); }
-  void portRequestMonitorByName(string name, bool onoff) { throw new Exception("Not yet implemented"); }
-  void portDisconnect(Port port) { throw new Exception("Not yet implemented"); }
-  size_t portTypeGetBufferSize(string type) { throw new Exception("Not yet implemented"); }
+  void portUnregister(Port port) {
+    if( jack_port_unregister(client, (cast(PortImplementation) port).rawPointer) ) {
+      throw new JackException("Cannot unregister port " ~ port.name);
+    }
+  }
+
+  bool portIsMine(Port port) {
+    return (jack_port_is_mine(client, (cast(PortImplementation) port).rawPointer) != 0);
+  }
+
+  NamesArray portGetAllConnections(Port port) {
+    immutable(char) ** rawPorts = jack_port_get_all_connections(client, 
+        (cast(PortImplementation) port).rawPointer);
+
+    if(rawPorts == null) {
+      throw new JackException("Cannot get all ports connection");
+    }
+    return new NamesArrayImplementation(rawPorts);
+  }
+
+  void portRequestMonitorByName(string name, bool onoff) {
+    if( jack_port_request_monitor_by_name(client, toStringz(name), to!int(onoff)) ) {
+      throw new JackException("Cannot request monitor by nme for " ~ name);
+    }
+  }
+
+  void portDisconnect(Port port) {
+    if( jack_port_disconnect(client, (cast(PortImplementation) port).rawPointer) ){
+      throw new JackException("Cannot disconnect port " ~ port.name);
+    }
+  }
+
+  size_t portTypeGetBufferSize(string type) {
+    return jack_port_type_get_buffer_size(client, toStringz(type));
+  }
 
   NamesArray getPorts(string pattern, string patternType, PortFlags flags) {
     immutable(char) ** rawPorts = jack_get_ports (client, toStringz(pattern), 
@@ -385,9 +483,21 @@ class ClientImplementation : Client {
     return new NamesArrayImplementation(rawPorts);
   }
 
-  Port getByName(string port_name) { throw new Exception("Not yet implemented"); }
-  Port getByID(PortID id) { throw new Exception("Not yet implemented"); }
+  Port getByName(string portName) {
+    jack_port_t * portPtr = jack_port_by_name(client, toStringz(portName));
+    if(portPtr == null) {
+      throw new JackException("Cannot get port " ~ portName ~ " by name");
+    }
+    return new PortImplementation(portPtr);
+  }
 
+  Port getByID(PortID id) {
+    jack_port_t * portPtr = jack_port_by_id(client, id);
+    if(portPtr == null) {
+      throw new JackException("Cannot get port " ~ to!string(id) ~ " by ID");
+    }
+    return new PortImplementation(portPtr);
+  }
 
   void connect(string sourcePort, string destPort) {
     if( jack_connect (client, toStringz(sourcePort), toStringz(destPort)) ) {
@@ -401,10 +511,16 @@ class ClientImplementation : Client {
     }
   }
 
-  void recomputeTotalLatencies() { throw new Exception("Not yet implemented"); }
+  void recomputeTotalLatencies() {
+    if( jack_recompute_total_latencies(client) ) {
+      throw new JackException("Cannot recompute total latencies");
+    }
+  }
 
   void releaseTimebase() {
-    jack_release_timebase(client);
+    if( jack_release_timebase(client) ) {
+      throw new JackException("Cannot release timebase");
+    }
   }
 
   void transportStart() {
@@ -416,7 +532,9 @@ class ClientImplementation : Client {
   }
 
   void setSyncTimeout(Time timeout) { 
-    jack_set_sync_timeout(client, timeout);
+    if( jack_set_sync_timeout(client, timeout) ) {
+      throw new JackException("Cannot set sync timeout");
+    }
   }
 
   void transportLocate(NFrames frame){ 
@@ -444,85 +562,127 @@ class ClientImplementation : Client {
       throw new JackException("Cannot set process callback");
     }
   }
+
   void setShutdownCallback(ShutdownCallback callback, void* data) {
     jack_on_shutdown (client, callback, data);
   }
+
   void setFreewheelCallback(FreewheelCallback callback, void* data) { 
     if(jack_set_freewheel_callback (client, callback, data)) {
       throw new JackException("Cannot set freewheel callback");
     }
   }
+
   void setBufferSizeCallback(BufferSizeCallback callback, void* data) { 
     if(jack_set_buffer_size_callback (client, callback, data)) {
       throw new JackException("Cannot set buffer size callback");
     }
   }
+
   void setSampleRateCallback(SampleRateCallback callback, void* data) { 
     if(jack_set_sample_rate_callback (client, callback, data)) {
       throw new JackException("Cannot set sample rate callback");
     }
   }
+
   void setClientRegistrationCallback(ClientRegistrationCallback callback, void* data) { 
     if(jack_set_client_registration_callback (client, callback, data)) {
       throw new JackException("Cannot set client registration callback");
     }
   }
+
   void setPortRegistrationCallback(PortRegistrationCallback callback, void* data) { 
     if(jack_set_port_registration_callback (client, callback, data)) {
       throw new JackException("Cannot set port registration callback");
     }
   }
+
   void setPortConnectCallback(PortConnectCallback callback, void* data) { 
     if(jack_set_port_connect_callback (client, callback, data)) {
       throw new JackException("Cannot set port connect callback");
     }
   }
+
   void setPortRenameCallback(PortRenameCallback callback, void* data) { 
     if(jack_set_port_rename_callback (client, callback, data)) {
       throw new JackException("Cannot set port rename callback");
     }
   }
+
   void setGraphOrderCallback(GraphOrderCallback callback, void* data) { 
     if(jack_set_graph_order_callback (client, callback, data)) {
       throw new JackException("Cannot set graph order callback");
     }
   }
+
   void setXRunCallback(XRunCallback callback, void* data) { 
     if(jack_set_xrun_callback (client, callback, data)) {
       throw new JackException("Cannot set xrun callback");
     }
   }
+
   void setLatencyCallback(LatencyCallback callback, void* data) { 
     if(jack_set_latency_callback (client, callback, data)) {
       throw new JackException("Cannot set latency callback");
     }
   }
-  void setSyncCallback(SyncCallback callback, void* data){
+
+  void setSyncCallback(SyncCallback callback, void* data) {
+    if(jack_set_sync_callback(client, callback, data)) {
+      throw new JackException("Cannot set sync callback");
+    }
   }
+
   void setTimebaseCallback(int conditional, TimebaseCallback callback, void* data) {
     if (jack_set_timebase_callback(client, conditional, callback, data)) {
       throw new JackException("Cannot set timebase callback");
     }
   }
 
-  Time framesToTime(NFrames frames) { throw new Exception("Not yet implemented"); }
-  NFrames timeToFrames(Time time) { throw new Exception("Not yet implemented"); }
+  Time framesToTime(NFrames frames) {
+    return jack_frames_to_time(client, frames);
+  }
+
+  NFrames timeToFrames(Time time) {
+    return jack_time_to_frames(client, time);
+  }
 
 
   string name() {
     return to!string( jack_get_client_name(client) );
   }
 
-  int nameSize() { throw new Exception("Not yet implemented"); } 
-  int pid() { throw new Exception("Not yet implemented"); }
-  JackThread thread() { throw new Exception("Not yet implemented"); }
-  bool isRealtime() { throw new Exception("Not yet implemented"); }
-  float cpuLoad() { throw new Exception("Not yet implemented"); }
-  NFrames samplerate() { throw new Exception("Not yet implemented"); }
-  NFrames buffersize() { throw new Exception("Not yet implemented"); }
-  NFrames framesSinceCycleStart() { throw new Exception("Not yet implemented"); }
-  NFrames frameTime() { throw new Exception("Not yet implemented"); }
-  NFrames lastFrameTime() { throw new Exception("Not yet implemented"); }
+  ThreadId threadId() {
+    return jack_client_thread_id(client);
+  }
+
+  bool isRealtime() {
+    return (jack_is_realtime(client) != 0);
+  }
+
+  float cpuLoad() {
+    return jack_cpu_load(client);
+  }
+
+  NFrames samplerate() {
+    return jack_get_sample_rate(client);
+  }
+
+  NFrames buffersize() {
+    return jack_get_buffer_size(client);
+  }
+
+  NFrames framesSinceCycleStart() {
+    return jack_frames_since_cycle_start(client);
+  }
+
+  NFrames frameTime() {
+    return jack_frame_time(client);
+  }
+
+  NFrames lastFrameTime() {
+    return jack_last_frame_time(client);
+  }
 }
 
 
@@ -543,10 +703,30 @@ static Client clientOpen(string clientName, Options options, out Status status, 
 
   return new ClientImplementation(client);
 }
-static Version getVersion() { throw new Exception("Not yet implemented"); }
-static string getVersionString() { throw new Exception("Not yet implemented"); }
-static int getClientPID(string name) { throw new Exception("Not yet implemented"); }
-static int portNameSize() { throw new Exception("Not yet implemented"); }
-static int portTypeSize() { throw new Exception("Not yet implemented"); }
-static Time getTime() { throw new Exception("Not yet implemented"); }
+
+static Version getVersion() {
+  Version result;
+  jack_get_version(&result.major, &result.minor, &result.micro, &result.proto);
+  return result;
+}
+
+static string getVersionString() {
+  return to!string (jack_get_version_string());
+}
+
+static int getClientPID(string name) {
+  return jack_get_client_pid(toStringz(name));
+}
+
+static int portNameSize() {
+  return jack_port_name_size();
+}
+
+static int portTypeSize() {
+  return jack_port_type_size();
+}
+
+static Time getTime() {
+  return jack_get_time();
+}
 

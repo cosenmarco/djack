@@ -220,7 +220,6 @@ extern(C)
     int jack_set_buffer_size (jack_client_t *client, jack_nframes_t nframes);
     jack_nframes_t jack_get_sample_rate (jack_client_t *);
     jack_nframes_t jack_get_buffer_size (jack_client_t *);
-    int jack_engine_takeover_timebase (jack_client_t *);
     float jack_cpu_load (jack_client_t *client);
 
     jack_port_t * jack_port_register (jack_client_t *client, immutable(char)*  port_name, immutable(char)*  port_type, uint flags, uint buffer_size);
@@ -228,7 +227,7 @@ extern(C)
     void * jack_port_get_buffer (jack_port_t *, jack_nframes_t);
     immutable(char)*  jack_port_name (jack_port_t *port);
     immutable(char)*  jack_port_short_name (jack_port_t *port);
-    int jack_port_flags (jack_port_t *port);
+    JackPortFlags jack_port_flags (jack_port_t *port);
     immutable(char)*  jack_port_type (jack_port_t *port);
     jack_port_type_id_t jack_port_type_id (jack_port_t *port);
     int jack_port_is_mine (jack_client_t *, jack_port_t *port);
@@ -241,7 +240,7 @@ extern(C)
     int jack_port_set_name (jack_port_t *port, immutable(char)*  port_name);
     int jack_port_set_alias (jack_port_t *port, immutable(char)*  _alias);
     int jack_port_unset_alias (jack_port_t *port, immutable(char)*  _alias);
-    int jack_port_get_aliases (jack_port_t *port, const char* aliases[2]);
+    int jack_port_get_aliases (jack_port_t *port, immutable(char)** aliases);
     int jack_port_request_monitor (jack_port_t *port, int onoff);
     int jack_port_request_monitor_by_name (jack_client_t *client, immutable(char)*  port_name, int onoff);
     int jack_port_ensure_monitor (jack_port_t *port, int onoff);
@@ -255,7 +254,7 @@ extern(C)
 
     void jack_port_get_latency_range (jack_port_t *port, jack_latency_callback_mode_t mode, jack_latency_range_t *range);
     void jack_port_set_latency_range (jack_port_t *port, jack_latency_callback_mode_t mode, jack_latency_range_t *range);
-    int jack_recompute_total_latencies (immutable jack_client_t*);
+    int jack_recompute_total_latencies (jack_client_t*);
 
     immutable(char)* * jack_get_ports (jack_client_t *, immutable(char)*  port_name_pattern, immutable(char)*  type_name_pattern, uint flags);
     jack_port_t * jack_port_by_name (jack_client_t *, immutable(char)*  port_name);
