@@ -29,12 +29,16 @@ struct paTestData
     int right_phase;
 };
 
-static void signal_handler(int sig)
+extern(C) static nothrow @system void signal_handler(int sig)
 {
+  try {
     if (client != null)
         jack_client_close(client);
     stderr.write("signal received, exiting ...\n");
     exit(0);
+  } catch {
+    exit(0);
+  }
 }
 
 /**
@@ -71,7 +75,7 @@ process (jack_nframes_t nframes, void *arg)
 * JACK calls this shutdown_callback if the server ever shuts down or
 * decides to disconnect the client.
 */
-void jack_shutdown (void *arg)
+extern(C) void jack_shutdown (void *arg)
 {
     exit (1);
 }
@@ -130,7 +134,7 @@ main (string[] args)
     */
     
     paTestData * data_ptr = &data;
-    jack_set_process_callback (client, &process, data_ptr);
+    jack_set_process_callback (client, cast(_JackProcessCallback) &process, data_ptr);
 
     /* tell the JACK server to call `jack_shutdown()' if
         it ever shuts down, either entirely, or if it
@@ -189,19 +193,15 @@ main (string[] args)
 
     jack_free (ports);
 
-/* install a signal handler to properly quits jack client */
+    /* install a signal handler to properly quits jack client */
     signal(SIGQUIT, &signal_handler);
     signal(SIGTERM, &signal_handler);
     signal(SIGHUP, &signal_handler);
     signal(SIGINT, &signal_handler);
 
     /* keep running until the Ctrl+C */
-
     while (1) {
-        Thread.sleep (1);
+        Thread.sleep (seconds(10));
     }
-
-    jack_client_close (client);
-
     return 0;
 }
