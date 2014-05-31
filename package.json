@@ -1,0 +1,9 @@
+{
+  "name": "djack",
+  "description": "A D API for building JACK clients.",
+  "authors": ["Marco Cosentino"],
+  "license": "GPL-3.0",
+  "libs": [ "jack" ],
+  "sourceFiles": [ "jack.d" ],
+  "targetType": "sourceLibrary"
+}
