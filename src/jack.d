@@ -153,21 +153,21 @@ interface Port
 }
 
 
+alias extern(C) void function(LatencyCallbackMode mode, void* data) LatencyCallback;
 alias extern(C) int function(NFrames nframes, void* data) ProcessCallback;
-alias extern(C) void* function(void* data) ThreadCallback;
-alias extern(C) void function(void* data) ThreadInitCallback;
-alias extern(C) int function(void* data) GraphOrderCallback;
-alias extern(C) int function(void* data) XRunCallback;
+alias _JackThreadCallback ThreadCallback;
+alias _JackThreadInitCallback ThreadInitCallback;
+alias _JackGraphOrderCallback GraphOrderCallback;
+alias _JackXRunCallback XRunCallback;
 alias extern(C) int function(NFrames nframes, void* data) BufferSizeCallback;
 alias extern(C) int function(NFrames nframes, void* data) SampleRateCallback;
 alias extern(C) void function(PortID port, int register, void* data) PortRegistrationCallback;
-alias extern(C) void function(string name, int register, void* data) ClientRegistrationCallback;
+alias _JackClientRegistrationCallback ClientRegistrationCallback;
 alias extern(C) void function(PortID a, PortID b, int connect, void* data) PortConnectCallback;
-alias extern(C) int function(PortID port, string old_name, string new_name, void* data) PortRenameCallback;
-alias extern(C) void function(int starting, void* data) FreewheelCallback;
-alias extern(C) void function(void* data) ShutdownCallback;
-alias extern(C) void function(Status code, string reason, void* data) InfoShutdownCallback;
-alias extern(C) void function(LatencyCallbackMode mode, void* data) LatencyCallback;
+alias extern(C) int function(PortID port, immutable(char)* old_name, immutable(char)* new_name, void* data) PortRenameCallback;
+alias _JackFreewheelCallback FreewheelCallback;
+alias _JackShutdownCallback ShutdownCallback;
+alias extern(C) void function(Status code, immutable(char)* reason, void* data) InfoShutdownCallback;
 alias extern(C) int function(TransportState state, Position *pos, void *arg) SyncCallback;
 alias extern(C) void function(TransportState state, NFrames nframes, Position *pos, int new_pos, void *arg) TimebaseCallback;
 

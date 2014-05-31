@@ -91,12 +91,12 @@ alias extern(C) int function(void* arg) _JackXRunCallback;
 alias extern(C) int function(jack_nframes_t nframes, void *arg) _JackBufferSizeCallback;
 alias extern(C) int function(jack_nframes_t nframes, void *arg) _JackSampleRateCallback;
 alias extern(C) void function(jack_port_id_t port, int register, void *arg) _JackPortRegistrationCallback;
-alias extern(C) void function(const char* name, int register, void *arg) _JackClientRegistrationCallback;
+alias extern(C) void function(immutable(char)* name, int register, void *arg) _JackClientRegistrationCallback;
 alias extern(C) void function(jack_port_id_t a, jack_port_id_t b, int connect, void* arg) _JackPortConnectCallback;
-alias extern(C) int function(jack_port_id_t port, const char* old_name, const char* new_name, void *arg) _JackPortRenameCallback;
+alias extern(C) int function(jack_port_id_t port, immutable(char)* old_name, immutable(char)* new_name, void *arg) _JackPortRenameCallback;
 alias extern(C) void function(int starting, void *arg) _JackFreewheelCallback;
 alias extern(C) void function(void *arg) _JackShutdownCallback;
-alias extern(C) void function(jack_status_t code, const char* reason, void *arg) _JackInfoShutdownCallback;
+alias extern(C) void function(jack_status_t code, immutable(char)* reason, void *arg) _JackInfoShutdownCallback;
 
 enum string  JACK_DEFAULT_AUDIO_TYPE = "32 bit float mono audio";
 enum string  JACK_DEFAULT_MIDI_TYPE = "8 bit raw midi";
@@ -199,9 +199,9 @@ extern(C)
     int jack_get_client_pid (immutable(char)*  name);
     jack_native_thread_t jack_client_thread_id (jack_client_t *);
     int jack_is_realtime (jack_client_t *client);
-    jack_nframes_t jack_cycle_wait (immutable jack_client_t* client);
-    void jack_cycle_signal (immutable jack_client_t* client, int status);
-    int jack_set_process_thread(immutable jack_client_t* client, _JackThreadCallback thread_callback, void *arg);
+    jack_nframes_t jack_cycle_wait (jack_client_t* client);
+    void jack_cycle_signal (jack_client_t* client, int status);
+    int jack_set_process_thread(jack_client_t* client, _JackThreadCallback thread_callback, void *arg);
     int jack_set_thread_init_callback (jack_client_t *client, _JackThreadInitCallback thread_init_callback,  void *arg);
     void jack_on_shutdown (jack_client_t *client, _JackShutdownCallback shutdown_callback, void *arg);
     void jack_on_info_shutdown (jack_client_t *client, _JackInfoShutdownCallback shutdown_callback, void *arg);
@@ -216,7 +216,7 @@ extern(C)
     int jack_set_graph_order_callback (jack_client_t *, _JackGraphOrderCallback graph_callback, void *);
     int jack_set_xrun_callback (jack_client_t *, _JackXRunCallback xrun_callback, void *arg);
     int jack_set_latency_callback (jack_client_t *, _JackLatencyCallback latency_callback, void *);
-    int jack_set_freewheel(immutable jack_client_t* client, int onoff);
+    int jack_set_freewheel(jack_client_t* client, int onoff);
     int jack_set_buffer_size (jack_client_t *client, jack_nframes_t nframes);
     jack_nframes_t jack_get_sample_rate (jack_client_t *);
     jack_nframes_t jack_get_buffer_size (jack_client_t *);
