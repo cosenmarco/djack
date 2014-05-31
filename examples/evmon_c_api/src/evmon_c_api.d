@@ -20,12 +20,16 @@ enum int SIGQUIT = 3;
 
 jack_client_t *client;
 
-static void signal_handler(int sig)
+extern(C) static nothrow @system void signal_handler(int sig)
 {
+  try {
     if (client != null)
         jack_client_close(client);
-	stderr.writeln ("signal received, exiting ...");
-	exit(0);
+    stderr.writeln ("signal received, exiting ...");
+    exit(0);
+  } catch {
+    exit(1);
+  }
 }
 
 extern(C) static void
@@ -41,9 +45,9 @@ connect_callback (jack_port_id_t a, jack_port_id_t b, int yn, void* arg)
 }
 
 extern(C) static void
-client_callback (const char* client, int yn, void* arg)
+client_callback (immutable(char)* client, int yn, void* arg)
 {
-	stdout.writeln ("Client ", client, (yn ? " registered" : " unregistered"));
+	stdout.writeln ("Client ", to!string(client), (yn ? " registered" : " unregistered"));
 }
 
 extern(C) static int
@@ -95,9 +99,9 @@ main (string[] args)
     signal(SIGINT, &signal_handler);
 
     while (1) {
-        Thread.sleep (1);
+        Thread.sleep (seconds(1));
     }
 
-	return (0);
+    return (0);
 }
 
