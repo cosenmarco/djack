@@ -33,8 +33,7 @@ Client client;
 * special realtime thread once for each audio cycle.
 */
 
-extern(C) int
-process (NFrames nframes, void* arg)
+extern(C) int process (NFrames nframes, void* arg)
 {
   paTestData* data = cast(paTestData *) arg;
 
@@ -64,7 +63,7 @@ process (NFrames nframes, void* arg)
 * JACK calls this shutdown_callback if the server ever shuts down or
 * decides to disconnect the client.
 */
-void shutdown (void * data)
+extern(C) void shutdown (void * data)
 {
     exit (1);
 }
@@ -149,19 +148,20 @@ int main (string[] args)
 
   /* keep running until the Ctrl+C */
   while (1) {
-    Thread.sleep (1);
+    Thread.sleep (seconds(10));
   }
-
-  client.close();
-
   return 0;
 }
 
-static void signal_handler(int sig)
+extern(C) static void signal_handler(int sig) nothrow @system
 {
-  if (client !is null) {
-    client.close();
+  try {
+    if (client !is null) {
+      client.close();
+    }
+    stderr.write("signal received, exiting ...\n");
+    exit(0);
+  } catch {
+    exit(1);
   }
-  stderr.write("signal received, exiting ...\n");
-  exit(0);
 }
