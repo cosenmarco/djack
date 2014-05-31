@@ -153,23 +153,23 @@ interface Port
 }
 
 
-alias int function(NFrames nframes, void* data) ProcessCallback;
-alias void* function(void* data) ThreadCallback;
-alias void function(void* data) ThreadInitCallback;
-alias int function(void* data) GraphOrderCallback;
-alias int function(void* data) XRunCallback;
-alias int function(NFrames nframes, void* data) BufferSizeCallback;
-alias int function(NFrames nframes, void* data) SampleRateCallback;
-alias void function(PortID port, int register, void* data) PortRegistrationCallback;
-alias void function(string name, int register, void* data) ClientRegistrationCallback;
-alias void function(Port a, Port b, int connect, void* data) PortConnectCallback;
-alias int function(Port port, string old_name, string new_name, void* data) PortRenameCallback;
-alias void function(int starting, void* data) FreewheelCallback;
-alias void function(void* data) ShutdownCallback;
-alias void function(Status code, string reason, void* data) InfoShutdownCallback;
-alias void function(LatencyCallbackMode mode, void* data) LatencyCallback;
-alias int function(TransportState state, Position *pos, void *arg) SyncCallback;
-alias void function(TransportState state, NFrames nframes, Position *pos, int new_pos, void *arg) TimebaseCallback;
+alias extern(C) int function(NFrames nframes, void* data) ProcessCallback;
+alias extern(C) void* function(void* data) ThreadCallback;
+alias extern(C) void function(void* data) ThreadInitCallback;
+alias extern(C) int function(void* data) GraphOrderCallback;
+alias extern(C) int function(void* data) XRunCallback;
+alias extern(C) int function(NFrames nframes, void* data) BufferSizeCallback;
+alias extern(C) int function(NFrames nframes, void* data) SampleRateCallback;
+alias extern(C) void function(PortID port, int register, void* data) PortRegistrationCallback;
+alias extern(C) void function(string name, int register, void* data) ClientRegistrationCallback;
+alias extern(C) void function(Port a, Port b, int connect, void* data) PortConnectCallback;
+alias extern(C) int function(Port port, string old_name, string new_name, void* data) PortRenameCallback;
+alias extern(C) void function(int starting, void* data) FreewheelCallback;
+alias extern(C) void function(void* data) ShutdownCallback;
+alias extern(C) void function(Status code, string reason, void* data) InfoShutdownCallback;
+alias extern(C) void function(LatencyCallbackMode mode, void* data) LatencyCallback;
+alias extern(C) int function(TransportState state, Position *pos, void *arg) SyncCallback;
+alias extern(C) void function(TransportState state, NFrames nframes, Position *pos, int new_pos, void *arg) TimebaseCallback;
 
 interface Client
 {
@@ -586,7 +586,7 @@ class ClientImplementation : Client {
   }
 
   void setClientRegistrationCallback(ClientRegistrationCallback callback, void* data) { 
-    if(jack_set_client_registration_callback (client, callback, data)) {
+    if(jack_set_client_registration_callback (client, cast(_JackClientRegistrationCallback ) callback, data)) {
       throw new JackException("Cannot set client registration callback");
     }
   }
@@ -598,13 +598,13 @@ class ClientImplementation : Client {
   }
 
   void setPortConnectCallback(PortConnectCallback callback, void* data) { 
-    if(jack_set_port_connect_callback (client, callback, data)) {
+    if(jack_set_port_connect_callback (client, cast(_JackPortConnectCallback) callback, data)) {
       throw new JackException("Cannot set port connect callback");
     }
   }
 
   void setPortRenameCallback(PortRenameCallback callback, void* data) { 
-    if(jack_set_port_rename_callback (client, callback, data)) {
+    if(jack_set_port_rename_callback (client, cast(_JackPortRenameCallback) callback, data)) {
       throw new JackException("Cannot set port rename callback");
     }
   }
@@ -622,19 +622,19 @@ class ClientImplementation : Client {
   }
 
   void setLatencyCallback(LatencyCallback callback, void* data) { 
-    if(jack_set_latency_callback (client, callback, data)) {
+    if(jack_set_latency_callback (client, cast(_JackLatencyCallback) callback, data)) {
       throw new JackException("Cannot set latency callback");
     }
   }
 
   void setSyncCallback(SyncCallback callback, void* data) {
-    if(jack_set_sync_callback(client, callback, data)) {
+    if(jack_set_sync_callback(client, cast(_JackSyncCallback) callback, data)) {
       throw new JackException("Cannot set sync callback");
     }
   }
 
   void setTimebaseCallback(int conditional, TimebaseCallback callback, void* data) {
-    if (jack_set_timebase_callback(client, conditional, callback, data)) {
+    if (jack_set_timebase_callback(client, conditional, cast(_JackTimebaseCallback) callback, data)) {
       throw new JackException("Cannot set timebase callback");
     }
   }
