@@ -4,6 +4,6 @@
   "authors": ["Marco Cosentino"],
   "license": "GPL-3.0",
   "libs": [ "jack" ],
-  "sourceFiles": [ "jack.d" ],
+  "sourceFiles": [ "src/jack.d", "src/jack_c.di" ],
   "targetType": "sourceLibrary"
 }
