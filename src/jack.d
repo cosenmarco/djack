@@ -144,7 +144,7 @@ interface Port
         string shortname();
         PortFlags flags();
         string type();
-        PortID typeID();
+        PortTypeID typeID();
         bool connected();
         // TODO: It's not clear how can I interface to get the aliases
         //string[] aliases();
@@ -162,8 +162,8 @@ alias extern(C) int function(NFrames nframes, void* data) BufferSizeCallback;
 alias extern(C) int function(NFrames nframes, void* data) SampleRateCallback;
 alias extern(C) void function(PortID port, int register, void* data) PortRegistrationCallback;
 alias extern(C) void function(string name, int register, void* data) ClientRegistrationCallback;
-alias extern(C) void function(Port a, Port b, int connect, void* data) PortConnectCallback;
-alias extern(C) int function(Port port, string old_name, string new_name, void* data) PortRenameCallback;
+alias extern(C) void function(PortID a, PortID b, int connect, void* data) PortConnectCallback;
+alias extern(C) int function(PortID port, string old_name, string new_name, void* data) PortRenameCallback;
 alias extern(C) void function(int starting, void* data) FreewheelCallback;
 alias extern(C) void function(void* data) ShutdownCallback;
 alias extern(C) void function(Status code, string reason, void* data) InfoShutdownCallback;
@@ -332,7 +332,7 @@ class PortImplementation : Port {
     return to!string (jack_port_type(port));
   }
 
-  PortID typeID() {
+  PortTypeID typeID() {
     return jack_port_type_id(port);
   }
 
