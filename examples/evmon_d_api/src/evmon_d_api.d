@@ -6,6 +6,7 @@ Licence GPLv3
 import jack;
 
 import std.stdio;
+import std.conv;
 import core.stdc.signal;
 import core.stdc.stdlib;
 import core.thread;
@@ -15,13 +16,17 @@ enum int SIGQUIT = 3;
 
 Client client;
 
-static void signal_handler(int sig)
+extern(C) static nothrow @system void signal_handler(int sig)
 {
-  if (client !is null) {
-    client.close();  
+  try {
+    if (client !is null) {
+      client.close();  
+    }
+    stderr.writeln ("signal received, exiting ...");
+    exit(0);
+  } catch {
+    exit(1);
   }
-  stderr.writeln ("signal received, exiting ...");
-  exit(0);
 }
 
 extern(C) static void
@@ -37,9 +42,9 @@ connect_callback (PortID a, PortID b, int yn, void* arg)
 }
 
 extern(C) static void
-client_callback (const char* client, int yn, void* arg)
+client_callback (immutable(char)* client, int yn, void* arg)
 {
-  stdout.writeln ("Client ", client, (yn ? " registered" : " unregistered"));
+  stdout.writeln ("Client ", to!string(client), (yn ? " registered" : " unregistered"));
 }
 
 extern(C) static int
@@ -70,9 +75,8 @@ main (string[] args)
   signal(SIGINT, &signal_handler);
 
   while (1) {
-    Thread.sleep (1);
+    Thread.sleep (seconds(1));
   }
-
-  return (0);
+  return 0;
 }
 
