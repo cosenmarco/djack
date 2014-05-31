@@ -75,7 +75,6 @@ enum jack_latency_callback_mode_t {
     JackPlaybackLatency
 };
 
-alias void function(jack_latency_callback_mode_t mode, void *arg) _JackLatencyCallback;
 
 struct jack_latency_range_t
 {
@@ -83,20 +82,21 @@ struct jack_latency_range_t
     jack_nframes_t max;
 };
 
-alias int function(jack_nframes_t nframes, void *arg) _JackProcessCallback;
-alias void * function(void* arg) _JackThreadCallback;
-alias void function(void* arg) _JackThreadInitCallback;
-alias int function(void* arg) _JackGraphOrderCallback;
-alias int function(void* arg) _JackXRunCallback;
-alias int function(jack_nframes_t nframes, void *arg) _JackBufferSizeCallback;
-alias int function(jack_nframes_t nframes, void *arg) _JackSampleRateCallback;
-alias void function(jack_port_id_t port, int register, void *arg) _JackPortRegistrationCallback;
-alias void function(const char* name, int register, void *arg) _JackClientRegistrationCallback;
-alias void function(jack_port_id_t a, jack_port_id_t b, int connect, void* arg) _JackPortConnectCallback;
-alias int function(jack_port_id_t port, const char* old_name, const char* new_name, void *arg) _JackPortRenameCallback;
-alias void function(int starting, void *arg) _JackFreewheelCallback;
-alias void function(void *arg) _JackShutdownCallback;
-alias void function(jack_status_t code, const char* reason, void *arg) _JackInfoShutdownCallback;
+alias extern(C) void function(jack_latency_callback_mode_t mode, void *arg) _JackLatencyCallback;
+alias extern(C) int function(jack_nframes_t nframes, void *arg) _JackProcessCallback;
+alias extern(C) void * function(void* arg) _JackThreadCallback;
+alias extern(C) void function(void* arg) _JackThreadInitCallback;
+alias extern(C) int function(void* arg) _JackGraphOrderCallback;
+alias extern(C) int function(void* arg) _JackXRunCallback;
+alias extern(C) int function(jack_nframes_t nframes, void *arg) _JackBufferSizeCallback;
+alias extern(C) int function(jack_nframes_t nframes, void *arg) _JackSampleRateCallback;
+alias extern(C) void function(jack_port_id_t port, int register, void *arg) _JackPortRegistrationCallback;
+alias extern(C) void function(const char* name, int register, void *arg) _JackClientRegistrationCallback;
+alias extern(C) void function(jack_port_id_t a, jack_port_id_t b, int connect, void* arg) _JackPortConnectCallback;
+alias extern(C) int function(jack_port_id_t port, const char* old_name, const char* new_name, void *arg) _JackPortRenameCallback;
+alias extern(C) void function(int starting, void *arg) _JackFreewheelCallback;
+alias extern(C) void function(void *arg) _JackShutdownCallback;
+alias extern(C) void function(jack_status_t code, const char* reason, void *arg) _JackInfoShutdownCallback;
 
 enum string  JACK_DEFAULT_AUDIO_TYPE = "32 bit float mono audio";
 enum string  JACK_DEFAULT_MIDI_TYPE = "8 bit raw midi";
@@ -157,8 +157,8 @@ struct jack_position_t {
 
 };
 
-alias int function(jack_transport_state_t state, jack_position_t *pos, void *arg) _JackSyncCallback;
-alias void function(jack_transport_state_t state, jack_nframes_t nframes, jack_position_t *pos, int new_pos, void *arg) _JackTimebaseCallback;
+alias extern(C) int function(jack_transport_state_t state, jack_position_t *pos, void *arg) _JackSyncCallback;
+alias extern(C) void function(jack_transport_state_t state, jack_nframes_t nframes, jack_position_t *pos, int new_pos, void *arg) _JackTimebaseCallback;
 
 
 
@@ -182,8 +182,8 @@ extern(C)
 
 // jack/jack.h
 
-alias void function(immutable(char)*  msg) jack_error_callback;
-alias void function(immutable(char)*  msg) jack_info_callback;
+alias extern(C) void function(immutable(char)*  msg) jack_error_callback;
+alias extern(C) void function(immutable(char)*  msg) jack_info_callback;
 
 
 extern(C)
