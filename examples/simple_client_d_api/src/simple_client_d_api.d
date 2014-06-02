@@ -8,6 +8,7 @@ import jack;
 import std.stdio;
 import std.math;
 import std.string;
+import std.conv;
 import core.stdc.signal;
 import core.stdc.stdlib;
 import core.thread;
@@ -27,16 +28,15 @@ struct paTestData
 
   
 Client client;
+__gshared paTestData data;
 
 /**
 * The process callback for this JACK application is called in a
 * special realtime thread once for each audio cycle.
 */
 
-extern(C) int process (NFrames nframes, void* arg)
+extern(C) int jProcess (NFrames nframes, void* arg)
 {
-  paTestData* data = cast(paTestData *) arg;
-
   Port outputPort1 = data.outputPort1;
   Port outputPort2 = data.outputPort2;
 
@@ -63,20 +63,19 @@ extern(C) int process (NFrames nframes, void* arg)
 * JACK calls this shutdown_callback if the server ever shuts down or
 * decides to disconnect the client.
 */
-extern(C) void shutdown (void * data)
+extern(C) void jShutdown (void * data)
 {
     exit (1);
 }
 
 int main (string[] args)
 {
-  __gshared paTestData data;
 
   Port outputPort1, outputPort2;
   Options options;
   Status status;
 
-  string clientName;
+  string clientName = "test";
   string serverName = "";
 
 
@@ -87,12 +86,6 @@ int main (string[] args)
       serverName = args[2];
       options = Options.NullOption | Options.ServerName;
     }
-  } else {			
-    // Use basename of argv[0]
-    clientName= args[0];
-    auto pos = lastIndexOf(clientName,"/");
-    if(pos >= 0) 
-      clientName = clientName[(pos+1)..$];
   }
 
   for( int i=0; i<TABLE_SIZE; i++ ) {
@@ -100,21 +93,20 @@ int main (string[] args)
   }
   data.left_phase = data.right_phase = 0;
 
-
   client = clientOpen(clientName, options, status, serverName);
 
   if (status & Status.ServerStarted) {
-    stderr.write("JACK server started\n");
+    stderr.writeln("JACK server started");
   }
 
   if (status & Status.NameNotUnique) {
     clientName = client.name();
-    stderr.write("unique name `%s' assigned\n", clientName);
+    stderr.writeln ("unique name `", clientName, "' assigned");
   }
 
 
-  client.setProcessCallback(&process, &data);
-  client.setShutdownCallback(&shutdown, &data);
+  client.setProcessCallback(&jProcess, null);
+  client.setShutdownCallback(&jShutdown, null);
 
 
   outputPort1 = client.portRegister("output1", JACK_DEFAULT_AUDIO_TYPE, PortFlags.IsOutput, 0);
@@ -159,7 +151,7 @@ extern(C) static void signal_handler(int sig) nothrow @system
     if (client !is null) {
       client.close();
     }
-    stderr.write("signal received, exiting ...\n");
+    stderr.writeln("signal received, exiting ...");
     exit(0);
   } catch {
     exit(1);
