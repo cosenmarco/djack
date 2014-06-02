@@ -171,6 +171,9 @@ alias extern(C) void function(Status code, immutable(char)* reason, void* data) 
 alias extern(C) int function(TransportState state, Position *pos, void *arg) SyncCallback;
 alias extern(C) void function(TransportState state, NFrames nframes, Position *pos, int new_pos, void *arg) TimebaseCallback;
 
+alias jack_error_callback ErrorCallback;
+alias jack_info_callback InfoCallback;
+
 interface Client
 {
     void close();
@@ -730,3 +733,10 @@ static Time getTime() {
   return jack_get_time();
 }
 
+static setErrorCallback(ErrorCallback callback) {
+  jack_set_error_function(callback);
+}
+
+static setInfoCallback(InfoCallback callback) {
+  jack_set_info_function(callback);
+}
