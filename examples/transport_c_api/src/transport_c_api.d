@@ -3,7 +3,7 @@
    Licence GPLv3
 */
 
-import jack;
+import jack_c;
 
 import std.conv;
 import std.stdio;
@@ -14,7 +14,8 @@ import core.stdc.stdlib;
 enum int SIGHUP = 1;
 enum int SIGQUIT = 3;
 
-Client client;
+string clientName;
+jack_client_t *client;
 
 /* Time and tempo variables.  These are global to the entire,
  * transport timeline.  There is no attempt to keep a true tempo map.
@@ -30,7 +31,8 @@ __gshared int time_reset = 1;		/* true when time values change */
  *
  * Runs in the process thread.  Realtime, must not wait.
  */
-extern(C) static void timebase(TransportState state, NFrames nframes, Position *pos, int new_pos, void *arg)
+extern(C) static void timebase(jack_transport_state_t state, jack_nframes_t nframes, 
+    jack_position_t *pos, int new_pos, void *arg)
 {
   double min;			/* minutes since frame 0 */
   long abs_tick;			/* ticks since frame 0 */
@@ -38,7 +40,7 @@ extern(C) static void timebase(TransportState state, NFrames nframes, Position *
 
   if (new_pos || time_reset) {
 
-    pos.valid = PositionBits.PositionBBT;
+    pos.valid = jack_position_bits_t.JackPositionBBT;
     pos.beats_per_bar = time_beats_per_bar;
     pos.beat_type = time_beat_type;
     pos.ticks_per_beat = time_ticks_per_beat;
@@ -89,11 +91,10 @@ extern(C) static void jack_shutdown(void *arg)
   exit(1);
 }
 
-extern(C) static void signal_handler(int sig) nothrow @system
+extern(C) static void signal_handler(int sig) nothrow @system 
 {
   try {
-    if(client !is null)
-      client.close();
+    jack_client_close(client);
     stderr.writeln("signal received, exiting ...");
     exit(0);
   } catch {
@@ -105,37 +106,42 @@ extern(C) static void signal_handler(int sig) nothrow @system
 
 static void com_activate()
 {
-  client.activate();
+  if (jack_activate(client)) {
+    stderr.writeln("cannot activate client");
+  }
 }
 
 static void com_deactivate()
 {
-  client.deactivate();
+  if (jack_deactivate(client)) {
+    stderr.writeln("cannot deactivate client");
+  }
 }
 
 static void com_locate(int frame)
 {
-  client.transportLocate(frame);
+  jack_transport_locate(client, frame);
 }
 
 static void com_master(int cond)
 {
-  client.setTimebaseCallback(cond, &timebase, null);
+  if (jack_set_timebase_callback(client, cond, &timebase, null) != 0)
+    stderr.writeln("Unable to take over timebase.");
 }
 
 static void com_play()
 {
-  client.transportStart();
+  jack_transport_start(client);
 }
 
 static void com_release()
 {
-  client.releaseTimebase();
+  jack_release_timebase(client);
 }
 
 static void com_stop()
 {
-  client.transportStop();
+  jack_transport_stop(client);
 }
 
 /* Change the tempo for the entire timeline, not just from the current
@@ -149,7 +155,7 @@ static void com_tempo(float tempo)
 /* Set sync timeout in seconds. */
 static void com_timeout(float timeout)
 {
-  client.setSyncTimeout(cast(Time) (timeout*1000000));
+  jack_set_sync_timeout(client, cast(jack_time_t) (timeout*1000000));
 }
 
 /* command table must be in alphabetical order */
@@ -232,26 +238,33 @@ static void command_loop()
 int 
 main(string[] argv)
 {
-  Status status;
+  jack_status_t status;
 
   /* basename $0 */
-  string clientName = "trasnport_c_api.d";
+  clientName = "trasnport_c_api.d";
   
   /* open a connection to the JACK server */
-  client = clientOpen(clientName, Options.NullOption, status, "");
+  client = jack_client_open (toStringz(clientName), jack_options_t.JackNullOption, &status);
+  if (client == null) {
+    stderr.writeln("jack_client_open() failed, status = ", status);
+    return 1;
+  }
 
   signal(SIGQUIT, &signal_handler);
   signal(SIGTERM, &signal_handler);
   signal(SIGHUP, &signal_handler);
   signal(SIGINT, &signal_handler);
 
-  client.setShutdownCallback(&jack_shutdown, null);
+  jack_on_shutdown(client, &jack_shutdown, null);
 
-  client.activate();
+  if (jack_activate(client)) {
+    stderr.writeln("cannot activate client");
+    return 1;
+  }
 
   /* execute commands until done */
   command_loop();
 
-  client.close();
+  jack_client_close(client);
   return 0;
 }

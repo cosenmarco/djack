@@ -1,0 +1,12 @@
+{
+  "name": "transport_d_api",
+  "description": "A simple jack client example which uses the transport functionality based on the D API",
+  "authors": ["Marco Cosentino"],
+  "license": "GPL-3.0",
+  "libs": [ "jack" ],
+  "targetType": "executable",
+  "buildRequirements": ["allowWarnings"],
+  "dependencies": {
+    "djack": "~master"
+  }
+}
