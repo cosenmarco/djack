@@ -1,0 +1,12 @@
+{
+  "name": "evmon_c_api",
+  "description": "A simple event monitoring example jack client based on the C wrapped API",
+  "authors": ["Marco Cosentino"],
+  "license": "GPL-3.0",
+  "libs": [ "jack" ],
+  "targetType": "executable",
+  "buildRequirements": ["allowWarnings"],
+  "dependencies": {
+    "djack": "~master"
+  }
+}

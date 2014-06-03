@@ -1,0 +1,12 @@
+{
+  "name": "simple_client_d_api",
+  "description": "A simple jack client example based on the D API",
+  "authors": ["Marco Cosentino"],
+  "license": "GPL-3.0",
+  "libs": [ "jack" ],
+  "targetType": "executable",
+  "buildRequirements": ["allowWarnings"],
+  "dependencies": {
+    "djack": "~master"
+  }
+}
