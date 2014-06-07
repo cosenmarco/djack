@@ -263,6 +263,30 @@ struct Version
     int proto;
 }
 
+alias jack_c.jack_ringbuffer_data_t RingbufferData;
+
+interface RingBuffer {
+  void free();
+  RingbufferData[] getReadVector();
+  RingbufferData[] getWriteVector();
+  size_t read(void* dest, size_t cnt);
+  size_t peek(void* dest, size_t cnt);
+  void readAdvance(size_t cnt);
+  void mlock();
+  void reset();
+  void resetSize(size_t sz);
+  size_t write(void*  src, size_t cnt);
+  void writeAdvance(size_t cnt);
+
+  @property {
+    size_t writeSpace();
+    size_t readSpace();
+
+    ubyte *buf();
+    size_t size();
+    size_t sizeMask();
+  }
+}
 
 // ######### Implementation ###########
 
@@ -702,6 +726,83 @@ class ClientImplementation : Client {
   }
 }
 
+class RingBufferImpl : RingBuffer {
+  jack_ringbuffer_t *buffer;
+
+  this(jack_ringbuffer_t *buffer) {
+    this.buffer = buffer;
+  }
+
+  void free() {
+    jack_ringbuffer_free(buffer);
+  }
+
+  RingbufferData[] getReadVector() {
+    auto result = new RingbufferData[2];
+    jack_ringbuffer_get_read_vector(buffer, result);
+    return result;
+  }
+
+  RingbufferData[] getWriteVector() {
+    auto result = new RingbufferData[2];
+    jack_ringbuffer_get_write_vector(buffer, result);
+    return result;
+  }
+
+  size_t read(void* dest, size_t cnt) {
+    return jack_ringbuffer_read(buffer, dest, cnt);
+  }
+
+  size_t peek(void* dest, size_t cnt) {
+    return jack_ringbuffer_peek(buffer, dest, cnt);
+  }
+
+  void readAdvance(size_t cnt) {
+    jack_ringbuffer_read_advance(buffer, cnt);
+  }
+
+  size_t readSpace() {
+    return jack_ringbuffer_read_space(buffer);
+  }
+
+  void mlock() {
+    if(jack_ringbuffer_mlock(buffer) != 0) {
+      throw new JackException("Cannot lock memory");
+    }
+  }
+
+  void reset() {
+    jack_ringbuffer_reset(buffer);
+  }
+
+  void resetSize(size_t sz) {
+    jack_ringbuffer_reset_size(buffer, sz);
+  }
+
+  size_t write(void*  src, size_t cnt) {
+    return jack_ringbuffer_write(buffer, src, cnt);
+  }
+
+  void writeAdvance(size_t cnt) {
+    jack_ringbuffer_write_advance(buffer, cnt);
+  }
+
+  size_t writeSpace() {
+    return jack_ringbuffer_write_space(buffer);
+  }
+
+  ubyte *buf() {
+    return buffer.buf;
+  }
+
+  size_t size() {
+    return buffer.size;
+  }
+
+  size_t sizeMask() {
+    return buffer.size_mask;
+  }
+}
 
 // ######### Global functions
 
@@ -754,3 +855,14 @@ static setErrorCallback(ErrorCallback callback) {
 static setInfoCallback(InfoCallback callback) {
   jack_set_info_function(callback);
 }
+
+static RingBuffer createRingBuffer(size_t size) {
+  jack_ringbuffer_t *buffer = jack_ringbuffer_create(size);
+  
+  if(buffer == null) {
+    throw new JackException("Cannot creatre ringbuffer");
+  }
+
+  return new RingBufferImpl(buffer);
+}
+
