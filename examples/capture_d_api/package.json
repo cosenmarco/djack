@@ -1,0 +1,12 @@
+{
+  "name": "capture_d_api",
+  "description": "A simple jack client example which records on a soud file based on the D API",
+  "authors": ["Marco Cosentino"],
+  "license": "GPL-3.0",
+  "libs": [ "jack", "sndfile" ],
+  "targetType": "executable",
+  "buildRequirements": ["allowWarnings"],
+  "dependencies": {
+    "djack": "~master"
+  }
+}

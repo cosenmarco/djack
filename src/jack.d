@@ -22,6 +22,8 @@ module jack;
 import jack_c;
 import std.conv;
 import std.string;
+// DEBUG
+import std.stdio;
 
 alias jack_c.jack_native_thread_t ThreadId;
 alias jack_c.JACK_POSITION_MASK JACK_POSITION_MASK;
@@ -277,14 +279,16 @@ interface RingBuffer {
   void resetSize(size_t sz);
   size_t write(void*  src, size_t cnt);
   void writeAdvance(size_t cnt);
+  size_t getWriteSpace();
+  size_t getReadSpace();
 
   @property {
-    size_t writeSpace();
-    size_t readSpace();
 
     ubyte *buf();
     size_t size();
     size_t sizeMask();
+    size_t readPtr();
+    size_t writePtr();
   }
 }
 
@@ -761,7 +765,7 @@ class RingBufferImpl : RingBuffer {
     jack_ringbuffer_read_advance(buffer, cnt);
   }
 
-  size_t readSpace() {
+  size_t getReadSpace() {
     return jack_ringbuffer_read_space(buffer);
   }
 
@@ -787,7 +791,7 @@ class RingBufferImpl : RingBuffer {
     jack_ringbuffer_write_advance(buffer, cnt);
   }
 
-  size_t writeSpace() {
+  size_t getWriteSpace() {
     return jack_ringbuffer_write_space(buffer);
   }
 
@@ -801,6 +805,14 @@ class RingBufferImpl : RingBuffer {
 
   size_t sizeMask() {
     return buffer.size_mask;
+  }
+
+  size_t writePtr() {
+    return buffer.write_ptr;
+  }
+
+  size_t readPtr() {
+    return buffer.read_ptr;
   }
 }
 
