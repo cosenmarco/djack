@@ -20,7 +20,7 @@
 
 // NOTE: Those marked as deprecated in the jack's .h files were not included !!
 
-module jack_c;
+module jack.capi;
 
 import std.stdint;
 import core.sys.posix.pthread;

@@ -15,7 +15,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import jack_c;
+import jack.capi;
 
 import std.conv;
 import std.stdio;

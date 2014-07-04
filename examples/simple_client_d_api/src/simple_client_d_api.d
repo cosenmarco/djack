@@ -15,7 +15,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import jack;
+import jack.core;
 
 import std.stdio;
 import std.math;

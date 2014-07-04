@@ -17,34 +17,34 @@
    along with djack.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module jack;
+module jack.core;
 
-import jack_c;
+import jack.capi;
 import std.conv;
 import std.string;
 // DEBUG
 import std.stdio;
 
-alias jack_c.jack_native_thread_t ThreadId;
-alias jack_c.JACK_POSITION_MASK JACK_POSITION_MASK;
+alias jack.capi.jack_native_thread_t ThreadId;
+alias jack.capi.JACK_POSITION_MASK JACK_POSITION_MASK;
 
-alias jack_c.JackOpenOptions OpenOptions;
-alias jack_c.JackLoadOptions LoadOptions;
+alias jack.capi.JackOpenOptions OpenOptions;
+alias jack.capi.JackLoadOptions LoadOptions;
 
 alias jack_latency_range_t LatencyRange;
 alias jack_port_id_t PortID;
 alias jack_port_type_id_t PortTypeID;
 
 alias jack_default_audio_sample_t DefaultAudioSample;
-alias jack_c.JACK_DEFAULT_AUDIO_TYPE JACK_DEFAULT_AUDIO_TYPE;
+alias jack.capi.JACK_DEFAULT_AUDIO_TYPE JACK_DEFAULT_AUDIO_TYPE;
 
-alias jack_c.jack_unique_t Unique;
-alias jack_c.jack_shmsize_t Shmsize;
+alias jack.capi.jack_unique_t Unique;
+alias jack.capi.jack_shmsize_t Shmsize;
 alias jack_nframes_t NFrames;
 alias jack_time_t Time;
 
-alias jack_c.JACK_MAX_FRAMES MAX_FRAMES;
-alias jack_c.JACK_LOAD_INIT_LIMIT LOAD_INIT_LIMIT;
+alias jack.capi.JACK_MAX_FRAMES MAX_FRAMES;
+alias jack.capi.JACK_LOAD_INIT_LIMIT LOAD_INIT_LIMIT;
 
 enum Options : jack_options_t {
   NullOption =    jack_options_t.JackNullOption,
@@ -265,7 +265,7 @@ struct Version
     int proto;
 }
 
-alias jack_c.jack_ringbuffer_data_t RingbufferData;
+alias jack.capi.jack_ringbuffer_data_t RingbufferData;
 
 interface RingBuffer {
   void free();

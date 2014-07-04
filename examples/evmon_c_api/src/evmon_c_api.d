@@ -16,7 +16,7 @@
  */
 
 
-import jack_c;
+import jack.capi;
 
 import std.conv;
 import std.stdio;
