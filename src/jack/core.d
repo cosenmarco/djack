@@ -22,8 +22,6 @@ module jack.core;
 import jack.capi;
 import std.conv;
 import std.string;
-// DEBUG
-import std.stdio;
 
 alias jack.capi.jack_native_thread_t ThreadId;
 alias jack.capi.JACK_POSITION_MASK JACK_POSITION_MASK;
@@ -45,6 +43,45 @@ alias jack_time_t Time;
 
 alias jack.capi.JACK_MAX_FRAMES MAX_FRAMES;
 alias jack.capi.JACK_LOAD_INIT_LIMIT LOAD_INIT_LIMIT;
+
+alias ThreadDelegate              = void* delegate();
+alias ThreadInitDelegate          = void  delegate();
+alias ShutdownDelegate            = void  delegate();
+alias InfoShutdownDelegate        = void  delegate(Status code, string reason);
+alias ProcessDelegate             = int   delegate(NFrames nframes);
+alias FreewheelDelegate           = void  delegate(bool starting);
+alias BufferSizeDelegate          = int   delegate(NFrames nframes);
+alias SampleRateDelegate          = int   delegate(NFrames nframes);
+alias PortRegistrationDelegate    = void  delegate(PortID port, bool register);
+alias PortConnectDelegate         = void  delegate(PortID a, PortID b, bool connect);
+alias PortRenameDelegate          = int   delegate(PortID port, string oldName, string newName);
+alias GraphOrderDelegate          = int   delegate();
+alias XRunDelegate                = int   delegate();
+alias ClientRegistrationDelegate  = void  delegate(string name, bool register);
+alias LatencyDelegate             = void  delegate(LatencyCallbackMode mode);
+alias SyncDelegate                = int   delegate(TransportState state, Position *pos);
+alias TimebaseDelegate            = void  delegate(TransportState state, NFrames nframes, Position *pos, bool newPos);
+
+alias extern(C) void function(LatencyCallbackMode mode, void* data) LatencyCallback;
+alias extern(C) int function(NFrames nframes, void* data) ProcessCallback;
+alias _JackThreadCallback ThreadCallback;
+alias _JackThreadInitCallback ThreadInitCallback;
+alias _JackGraphOrderCallback GraphOrderCallback;
+alias _JackXRunCallback XRunCallback;
+alias extern(C) int function(NFrames nframes, void* data) BufferSizeCallback;
+alias extern(C) int function(NFrames nframes, void* data) SampleRateCallback;
+alias extern(C) void function(PortID port, int register, void* data) PortRegistrationCallback;
+alias _JackClientRegistrationCallback ClientRegistrationCallback;
+alias extern(C) void function(PortID a, PortID b, int connect, void* data) PortConnectCallback;
+alias extern(C) int function(PortID port, immutable(char)* old_name, immutable(char)* new_name, void* data) PortRenameCallback;
+alias _JackFreewheelCallback FreewheelCallback;
+alias _JackShutdownCallback ShutdownCallback;
+alias extern(C) void function(Status code, immutable(char)* reason, void* data) InfoShutdownCallback;
+alias extern(C) int function(TransportState state, Position *pos, void *arg) SyncCallback;
+alias extern(C) void function(TransportState state, NFrames nframes, Position *pos, int new_pos, void *arg) TimebaseCallback;
+
+alias jack_error_callback ErrorCallback;
+alias jack_info_callback InfoCallback;
 
 enum Options : jack_options_t {
   NullOption =    jack_options_t.JackNullOption,
@@ -169,26 +206,6 @@ interface Port
 }
 
 
-alias extern(C) void function(LatencyCallbackMode mode, void* data) LatencyCallback;
-alias extern(C) int function(NFrames nframes, void* data) ProcessCallback;
-alias _JackThreadCallback ThreadCallback;
-alias _JackThreadInitCallback ThreadInitCallback;
-alias _JackGraphOrderCallback GraphOrderCallback;
-alias _JackXRunCallback XRunCallback;
-alias extern(C) int function(NFrames nframes, void* data) BufferSizeCallback;
-alias extern(C) int function(NFrames nframes, void* data) SampleRateCallback;
-alias extern(C) void function(PortID port, int register, void* data) PortRegistrationCallback;
-alias _JackClientRegistrationCallback ClientRegistrationCallback;
-alias extern(C) void function(PortID a, PortID b, int connect, void* data) PortConnectCallback;
-alias extern(C) int function(PortID port, immutable(char)* old_name, immutable(char)* new_name, void* data) PortRenameCallback;
-alias _JackFreewheelCallback FreewheelCallback;
-alias _JackShutdownCallback ShutdownCallback;
-alias extern(C) void function(Status code, immutable(char)* reason, void* data) InfoShutdownCallback;
-alias extern(C) int function(TransportState state, Position *pos, void *arg) SyncCallback;
-alias extern(C) void function(TransportState state, NFrames nframes, Position *pos, int new_pos, void *arg) TimebaseCallback;
-
-alias jack_error_callback ErrorCallback;
-alias jack_info_callback InfoCallback;
 
 interface Client
 {
@@ -223,7 +240,22 @@ interface Client
     void trasnportReposition(Position *pos);
 
 
-    
+    // Simple Delegates interface
+    void setProcessDelegate(ProcessDelegate deleg);
+    void setShutdownDelegate(ShutdownDelegate deleg);
+    void setFreewheelDelegate(FreewheelDelegate deleg);
+    void setBufferSizeDelegate(BufferSizeDelegate deleg);
+    void setSampleRateDelegate(SampleRateDelegate deleg);
+    void setClientRegistrationDelegate(ClientRegistrationDelegate deleg);
+    void setPortRegistrationDelegate(PortRegistrationDelegate deleg);
+    void setPortConnectDelegate(PortConnectDelegate deleg);
+    void setPortRenameDelegate(PortRenameDelegate deleg);
+    void setGraphOrderDelegate(GraphOrderDelegate deleg);
+    void setXRunDelegate(XRunDelegate deleg);
+    void setLatencyDelegate(LatencyDelegate deleg);
+    void setSyncDelegate(SyncDelegate deleg);
+    void setTimebaseDelegate(bool conditional, TimebaseDelegate deleg);
+
     // Callbacks
     void setProcessCallback(ProcessCallback callback, void* data);
     void setShutdownCallback(ShutdownCallback callback, void* data);
@@ -238,7 +270,7 @@ interface Client
     void setXRunCallback(XRunCallback callback, void* data);
     void setLatencyCallback(LatencyCallback callback, void* data);
     void setSyncCallback(SyncCallback callback, void* data);
-    void setTimebaseCallback(int conditional, TimebaseCallback callback, void* data);
+    void setTimebaseCallback(bool conditional, TimebaseCallback callback, void* data);
 
     Time framesToTime(NFrames frames);
     NFrames timeToFrames(Time time);
@@ -293,6 +325,20 @@ interface RingBuffer {
 }
 
 // ######### Implementation ###########
+
+import std.traits;
+/**
+ * Creates a function which wraps the delegate call by using the data pointer
+ * which was passed when setting the callback as a ClientImplementation.
+ * It uses __traits(identifier, T) to do the call so it's mandatory to use
+ * the delegate name as stored in the ClientImplementation.
+ */
+private  template CallbackWrapper(alias T) if(isDelegate!T) {
+  extern(C) static auto wrapper(ParameterTypeTuple!T params, void * data) {
+    auto client = cast(ClientImplementation) data;
+    return mixin("client." ~ __traits(identifier, T) ~ "(params)");
+  }
+}
 
 class JackException : Exception {
   Status status = Status.Failure;
@@ -448,7 +494,27 @@ class PortImplementation : Port {
 
 
 class ClientImplementation : Client {
-  jack_client_t* client;
+  private {
+    ThreadDelegate threadDelegate;
+    ThreadInitDelegate threadInitDelegate;
+    ShutdownDelegate shutdownDelegate;
+    InfoShutdownDelegate infoShutdownDelegate;
+    ProcessDelegate processDelegate;
+    FreewheelDelegate freewheelDelegate;
+    BufferSizeDelegate bufferSizeDelegate;
+    SampleRateDelegate sampleRateDelegate;
+    PortRegistrationDelegate portRegistrationDelegate;
+    PortConnectDelegate portConnectDelegate;
+    PortRenameDelegate portRenameDelegate;
+    GraphOrderDelegate graphOrderDelegate;
+    XRunDelegate xRunDelegate;
+    ClientRegistrationDelegate clientRegistrationDelegate;
+    LatencyDelegate latencyDelegate;
+    SyncDelegate syncDelegate;
+    TimebaseDelegate timebaseDelegate;
+
+    jack_client_t* client;
+  }
 
   this(jack_client_t* client) {
     this.client = client;
@@ -602,14 +668,33 @@ class ClientImplementation : Client {
     }
   }
 
+  void setProcessDelegate(ProcessDelegate deleg) {
+    processDelegate = deleg;
+    setProcessCallback( & CallbackWrapper!(processDelegate).wrapper, cast(void *) this);
+  }
+
   void setProcessCallback(ProcessCallback callback, void* data) {
     if(jack_set_process_callback (client, callback, data)) {
       throw new JackException("Cannot set process callback");
     }
   }
 
+  void setShutdownDelegate(ShutdownDelegate deleg) {
+    shutdownDelegate = deleg;
+    setShutdownCallback( & CallbackWrapper!(shutdownDelegate).wrapper, cast(void *) this);
+  }
+
   void setShutdownCallback(ShutdownCallback callback, void* data) {
     jack_on_shutdown (client, callback, data);
+  }
+
+  void setFreewheelDelegate(FreewheelDelegate deleg) {
+    freewheelDelegate = deleg;
+    extern(C) void callback (int starting, void* data) {
+      auto client = cast(ClientImplementation) data;
+      client.freewheelDelegate(starting > 0);
+    };
+    setFreewheelCallback(&callback , cast(void *) this);
   }
 
   void setFreewheelCallback(FreewheelCallback callback, void* data) { 
@@ -618,10 +703,20 @@ class ClientImplementation : Client {
     }
   }
 
+  void setBufferSizeDelegate(BufferSizeDelegate deleg) {
+    bufferSizeDelegate = deleg;
+    setBufferSizeCallback( & CallbackWrapper!(bufferSizeDelegate).wrapper, cast(void *) this);
+  }
+
   void setBufferSizeCallback(BufferSizeCallback callback, void* data) { 
     if(jack_set_buffer_size_callback (client, callback, data)) {
       throw new JackException("Cannot set buffer size callback");
     }
+  }
+
+  void setSampleRateDelegate(SampleRateDelegate deleg) {
+    sampleRateDelegate = deleg;
+    setSampleRateCallback(& CallbackWrapper!(sampleRateDelegate).wrapper, cast(void *) this);
   }
 
   void setSampleRateCallback(SampleRateCallback callback, void* data) { 
@@ -630,10 +725,28 @@ class ClientImplementation : Client {
     }
   }
 
+  void setClientRegistrationDelegate(ClientRegistrationDelegate deleg) {
+    clientRegistrationDelegate = deleg;
+    extern(C) void callback(immutable(char)* name, int reg, void* data) {
+      auto client = cast(ClientImplementation) data;
+      client.clientRegistrationDelegate(to!string(name), reg > 0);
+    };
+    setClientRegistrationCallback(&callback, cast(void *) this);
+  }
+
   void setClientRegistrationCallback(ClientRegistrationCallback callback, void* data) { 
     if(jack_set_client_registration_callback (client, cast(_JackClientRegistrationCallback ) callback, data)) {
       throw new JackException("Cannot set client registration callback");
     }
+  }
+
+  void setPortRegistrationDelegate(PortRegistrationDelegate deleg) {
+    portRegistrationDelegate = deleg;
+    extern(C) void callback(PortID port, int register, void* data) {
+      auto client = cast(ClientImplementation) data;
+      client.portRegistrationDelegate(port, register > 0);
+    }
+    setPortRegistrationCallback(&callback, cast(void *) this);
   }
 
   void setPortRegistrationCallback(PortRegistrationCallback callback, void* data) { 
@@ -642,10 +755,28 @@ class ClientImplementation : Client {
     }
   }
 
+  void setPortConnectDelegate(PortConnectDelegate deleg) {
+    portConnectDelegate = deleg;
+    extern(C) void callback(PortID a, PortID b, int connect, void* data) {
+      auto client = cast(ClientImplementation) data;
+      client.portConnectDelegate(a, b, connect > 0);
+    }
+    setPortConnectCallback(&callback, cast(void *) this);
+  }
+
   void setPortConnectCallback(PortConnectCallback callback, void* data) { 
     if(jack_set_port_connect_callback (client, cast(_JackPortConnectCallback) callback, data)) {
       throw new JackException("Cannot set port connect callback");
     }
+  }
+
+  void setPortRenameDelegate(PortRenameDelegate deleg) {
+    portRenameDelegate = deleg;
+    extern(C) int callback(PortID port, immutable(char)* old_name, immutable(char)* new_name, void* data) {
+      auto client = cast(ClientImplementation) data;
+      return client.portRenameDelegate(port, to!string(old_name), to!string(new_name));
+    }
+    setPortRenameCallback(&callback, cast(void *) this);
   }
 
   void setPortRenameCallback(PortRenameCallback callback, void* data) { 
@@ -654,16 +785,31 @@ class ClientImplementation : Client {
     }
   }
 
+  void setGraphOrderDelegate(GraphOrderDelegate deleg) {
+    graphOrderDelegate = deleg;
+    setGraphOrderCallback(& CallbackWrapper!(graphOrderDelegate).wrapper, cast(void *) this);
+  }
+
   void setGraphOrderCallback(GraphOrderCallback callback, void* data) { 
     if(jack_set_graph_order_callback (client, callback, data)) {
       throw new JackException("Cannot set graph order callback");
     }
   }
 
-  void setXRunCallback(XRunCallback callback, void* data) { 
+  void setXRunDelegate(XRunDelegate deleg) {
+    xRunDelegate = deleg;
+    setXRunCallback(& CallbackWrapper!(xRunDelegate).wrapper, cast(void *) this);
+  }
+
+  void setXRunCallback(XRunCallback callback, void* data) {
     if(jack_set_xrun_callback (client, callback, data)) {
       throw new JackException("Cannot set xrun callback");
     }
+  }
+
+  void setLatencyDelegate(LatencyDelegate deleg) {
+    latencyDelegate = deleg;
+    setLatencyCallback(& CallbackWrapper!(latencyDelegate).wrapper, cast(void *) this);
   }
 
   void setLatencyCallback(LatencyCallback callback, void* data) { 
@@ -672,14 +818,28 @@ class ClientImplementation : Client {
     }
   }
 
+  void setSyncDelegate(SyncDelegate deleg) {
+    syncDelegate = deleg;
+    setSyncCallback(& CallbackWrapper!(syncDelegate).wrapper, cast(void *) this);
+  }
+
   void setSyncCallback(SyncCallback callback, void* data) {
     if(jack_set_sync_callback(client, cast(_JackSyncCallback) callback, data)) {
       throw new JackException("Cannot set sync callback");
     }
   }
 
-  void setTimebaseCallback(int conditional, TimebaseCallback callback, void* data) {
-    if (jack_set_timebase_callback(client, conditional, cast(_JackTimebaseCallback) callback, data)) {
+  void setTimebaseDelegate(bool conditional, TimebaseDelegate deleg) {
+    timebaseDelegate = deleg;
+    extern(C) void callback(TransportState state, NFrames nframes, Position *pos, int new_pos, void *data) {
+      auto client = cast(ClientImplementation) data;
+      client.timebaseDelegate(state, nframes, pos, new_pos > 0);
+    }
+    setTimebaseCallback(conditional, &callback, cast(void *) this);
+  }
+
+  void setTimebaseCallback(bool conditional, TimebaseCallback callback, void* data) {
+    if (jack_set_timebase_callback(client, to!int(conditional), cast(_JackTimebaseCallback) callback, data)) {
       throw new JackException("Cannot set timebase callback");
     }
   }
@@ -818,7 +978,7 @@ class RingBufferImpl : RingBuffer {
 
 // ######### Global functions
 
-static Client clientOpen(string clientName, Options options, out Status status, string serverName) {
+Client clientOpen(string clientName, Options options, out Status status, string serverName) {
   jack_client_t* client;
 
   if( status & Options.ServerName) {
@@ -834,41 +994,41 @@ static Client clientOpen(string clientName, Options options, out Status status, 
   return new ClientImplementation(client);
 }
 
-static Version getVersion() {
+Version getVersion() {
   Version result;
   jack_get_version(&result.major, &result.minor, &result.micro, &result.proto);
   return result;
 }
 
-static string getVersionString() {
+string getVersionString() {
   return to!string (jack_get_version_string());
 }
 
-static int getClientPID(string name) {
+int getClientPID(string name) {
   return jack_get_client_pid(toStringz(name));
 }
 
-static int portNameSize() {
+int portNameSize() {
   return jack_port_name_size();
 }
 
-static int portTypeSize() {
+int portTypeSize() {
   return jack_port_type_size();
 }
 
-static Time getTime() {
+Time getTime() {
   return jack_get_time();
 }
 
-static setErrorCallback(ErrorCallback callback) {
+void setErrorCallback(ErrorCallback callback) {
   jack_set_error_function(callback);
 }
 
-static setInfoCallback(InfoCallback callback) {
+void setInfoCallback(InfoCallback callback) {
   jack_set_info_function(callback);
 }
 
-static RingBuffer createRingBuffer(size_t size) {
+RingBuffer createRingBuffer(size_t size) {
   jack_ringbuffer_t *buffer = jack_ringbuffer_create(size);
   
   if(buffer == null) {
